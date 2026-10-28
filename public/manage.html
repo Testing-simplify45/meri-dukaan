@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manage store</title>
+<style>
+:root{color-scheme:light dark;--bg:#f5f6fa;--card:#fff;--ink:#1b2133;--mute:#6b7488;--line:#e6e9f0;--ac:#6a3de8;--on:#fff;--soft:#f0ecff;--ok:#12805c;--okb:#e3f6ee;--wn:#9a6700;--wnb:#fff4d6;--er:#b3261e;--erb:#fde8e6;--in:#1a5fb4;--inb:#e5efff}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1220;--card:#171c2e;--ink:#eceffa;--mute:#98a2ba;--line:#2a3150;--ac:#a58bff;--on:#150b3a;--soft:#241c4a;--ok:#5fd6a6;--okb:#12362a;--wn:#f1c45b;--wnb:#3a2f10;--er:#ff9a92;--erb:#43191a;--in:#8fbaff;--inb:#16294a}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-top:env(safe-area-inset-top,0px);-webkit-tap-highlight-color:transparent}
+#app{display:flex;min-height:100vh}
+aside{width:210px;flex:none;background:var(--card);border-right:1px solid var(--line);padding:16px 12px;position:sticky;top:0;height:100vh}
+.brand{font-weight:800;font-size:1.1rem;margin:0 8px 16px;overflow-wrap:anywhere}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--mute);font:inherit;font-weight:600;padding:9px 12px;border-radius:9px;cursor:pointer;margin-bottom:2px}
+nav button.on{background:var(--soft);color:var(--ac)}
+main{flex:1;min-width:0;max-width:760px;margin:0 auto;padding:16px 16px 40px}
+.top{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:14px}
+h1{margin:0;font-size:1.35rem}h2{font-size:1rem;margin:0 0 10px}.mute{color:var(--mute);font-size:.85rem}.nm{font-size:1.1rem}
+.av{width:42px;height:42px;border-radius:50%;background:var(--soft);color:var(--ac);display:grid;place-items:center;font-weight:800;font-size:1.1rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;overflow-wrap:anywhere}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.bd{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.76rem;font-weight:600;white-space:nowrap}
+.ok{background:var(--okb);color:var(--ok)}.wn{background:var(--wnb);color:var(--wn)}.er{background:var(--erb);color:var(--er)}.in{background:var(--inb);color:var(--in)}.nt{background:var(--bg);color:var(--mute)}
+.hero{background:linear-gradient(135deg,#6a3de8,#9b2fe0);color:#fff;border-radius:22px;padding:18px;margin-bottom:14px;box-shadow:0 10px 24px rgba(106,61,232,.25)}
+.hero .big{font-size:2.1rem;font-weight:800;margin:2px 0 12px;letter-spacing:-.5px}.hero small{display:block;opacity:.85}.hero b{font-size:1.25rem}
+.hero .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hero .two div{background:rgba(255,255,255,.17);border-radius:14px;padding:10px 12px}
+.gw{float:right;background:rgba(255,255,255,.2);border-radius:999px;padding:2px 10px;font-size:.8rem}
+.qa{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.qa button{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 4px;color:var(--ink);font:inherit;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px}.qa span{font-size:1.35rem;line-height:1}
+.due{background:var(--wnb);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:6px}.due b{font-size:1.25rem}.due .grow{flex:1}
+.sh{display:flex;justify-content:space-between;align-items:center;margin:20px 0 8px}.sh h2{margin:0;font-size:1.05rem}
+.hs{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 4px}
+.pc{flex:0 0 132px;scroll-snap-align:start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:left;cursor:pointer;color:var(--ink);font:inherit}
+.pc span{font-size:1.2rem}.pc b{display:block;font-size:1.6rem}.pc em{font-style:normal;color:var(--mute);font-size:.82rem}
+.at{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px 12px;margin-bottom:8px;cursor:pointer;width:100%;text-align:left;font:inherit;color:var(--ink)}
+.ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:1.15rem;flex:none}.at .grow{flex:1;min-width:0}.at b{display:block}
+.oc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.bar{height:8px;border-radius:99px;background:var(--bg);overflow:hidden;margin:4px 0 10px}.bar i{display:block;height:100%;background:var(--ac)}
+.stk{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--bg);margin:8px 0}.stk i{display:block;height:100%}
+.chip{display:inline-block;background:var(--bg);border-radius:999px;padding:3px 11px;font-size:.78rem;margin:0 6px 6px 0;color:var(--mute)}
+.store{background:#0f1224;color:#fff;border-radius:22px;padding:16px;margin-bottom:14px}.store .st{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.store .st div{background:rgba(255,255,255,.1);border-radius:14px;padding:12px 6px;text-align:center;font-size:.8rem}.store .st b{display:block;font-size:1.5rem}.store a{color:#cbb8ff;font-weight:600;text-decoration:none}
+.two{display:grid;grid-template-columns:1fr;gap:0 12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:none;color:var(--mute);font:inherit;font-weight:600;padding:7px 12px;cursor:pointer}.seg button.on{background:var(--soft);color:var(--ac)}
+.btn{display:inline-block;text-decoration:none;font:inherit;font-weight:600;border:0;border-radius:12px;padding:10px 16px;background:var(--ac);color:var(--on);cursor:pointer;text-align:center}
+.btn.g{background:transparent;color:var(--ink);border:1px solid var(--line)}.btn.sm{padding:7px 12px;font-size:.85rem}.btn.dk{background:#12122a;color:#fff}
+input,select,textarea{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%;margin:4px 0 10px}
+select{width:auto;margin:0}label{display:block;font-size:.82rem;color:var(--mute)}.ck{display:flex;gap:8px;align-items:center;color:var(--ink)}.ck input{width:auto;margin:0}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+dialog{border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink);width:min(520px,94vw);padding:18px;max-height:92vh}dialog::backdrop{background:rgba(0,0,0,.5)}
+.bn{display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);justify-content:space-around;align-items:flex-end;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+.bn button{flex:1;background:none;border:0;color:var(--mute);font:inherit;font-size:.72rem;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;cursor:pointer}
+.bn button span{font-size:1.25rem;line-height:1.2}.bn button.on{color:var(--ac)}
+.bn .fab{flex:none;width:56px;height:56px;border-radius:50%;background:var(--ac);color:var(--on);font-size:2rem;margin:-24px 6px 0;box-shadow:0 6px 16px rgba(106,61,232,.45);justify-content:center;padding:0}
+.login{max-width:380px;margin:60px auto}.err{color:var(--er);min-height:1.2em}
+:focus-visible{outline:3px solid #f5b700;outline-offset:2px}
+@media(min-width:801px){.two{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){
+ #app{flex-direction:column}aside{display:none}.bn{display:flex}.dsk{display:none}
+ main{padding:14px 16px calc(100px + env(safe-area-inset-bottom,0px))}
+ input,select,textarea{font-size:16px}.btn{min-height:42px}.btn.sm{min-height:36px}.fg{grid-template-columns:1fr}
+ dialog{width:100%;max-width:100%;margin:auto 0 0;border-radius:20px 20px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+}
+</style>
+</head>
+<body>
+<div id="login" class="card login"><h1>Manage your store</h1><label>Store key or password<input id="key" type="password" autocomplete="current-password"></label><button class="btn" onclick="login()">Open</button><p class="err" id="err"></p></div>
+<div id="app" hidden>
+  <aside><div class="brand" id="brand">Store</div><nav id="nav"></nav></aside>
+  <main><div class="top"><div id="hd"></div><div class="row" id="top"></div></div><div id="view"></div></main>
+</div>
+<nav class="bn" id="bn"></nav>
+<dialog id="dlg"></dialog>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const inr = n => "₹" + Math.round(n).toLocaleString("en-IN");
+const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
+const slug = new URLSearchParams(location.search).get("store");
+const base = "/api/manage/" + slug;
+let SN = "Your store", key = sessionStorage.getItem("k") || "", P = [], O = [], S = [], tab = "dash", range = "30", flt = "all";
+
+async function api(p, method, body) {
+  const r = await fetch(p, { method: method || "GET", headers: { "x-key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "Something went wrong");
+  return j;
+}
+async function load() { [P, O, S] = await Promise.all([api(base + "/products"), api(base + "/orders"), api(base + "/suppliers")]); }
+async function login() {
+  key = $("key").value || key;
+  try {
+    await load(); sessionStorage.setItem("k", key); $("login").hidden = true; $("app").hidden = false; draw();
+    fetch("/api/store/" + slug).then(r => r.json()).then(d => { SN = d.name; document.title = d.name + " – manage"; draw(); }).catch(() => {});
+  } catch (e) { $("err").textContent = e.message; }
+}
+if (!slug) document.body.innerHTML = '<p style="padding:20px">Open this page from the list on your admin page.</p>'; else if (key) login();
+const act = async f => { try { await f(); await load(); } catch (e) { alert(e.message); } draw(); };
+
+// ----- money and status helpers -----
+const DL = { New: "New", Packed: "To dispatch", "In transit": "In transit", Delivered: "Delivered", Cancelled: "Cancelled" };
+const DB = { New: "wn", Packed: "wn", "In transit": "in", Delivered: "ok", Cancelled: "nt" };
+const PB = { Paid: "ok", Partial: "wn", Pending: "nt", Overdue: "er", Cancelled: "nt" };
+const age = o => (Date.now() - new Date(o.createdAt)) / 864e5;
+const due = o => Math.max(0, o.total - (o.paid || 0));
+const pst = o => o.status == "Cancelled" ? "Cancelled" : due(o) <= 0 ? "Paid" : o.paid > 0 ? "Partial" : age(o) > 7 ? "Overdue" : "Pending";
+const inR = o => range == "1" ? new Date(o.createdAt).toDateString() == new Date().toDateString() : age(o) <= +range;
+const dt = o => o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "";
+const wa = o => { let n = String(o.phone).replace(/\D/g, ""); if (n.length == 10) n = "91" + n; return "https://wa.me/" + n + "?text=" + encodeURIComponent(`Hi ${o.name}, a gentle reminder about order ${o.number}: ${inr(due(o))} is still due. Thank you!`); };
+
+// ----- screens -----
+const go = t => { tab = t; draw(); scrollTo(0, 0); };
+const showOrders = f => { flt = f; go("ord"); };
+const logout = () => { sessionStorage.removeItem("k"); location.reload(); };
+const inP = o => range == "1" ? new Date(o.createdAt).toDateString() == new Date(Date.now() - 864e5).toDateString() : (age(o) > +range && age(o) <= 2 * +range);
+function draw() {
+  $("brand").textContent = SN;
+  $("nav").innerHTML = [["dash", "Dashboard"], ["prod", "Products"], ["ord", "Orders"], ["sup", "Suppliers"]].map(([k, l]) => `<button class="${tab == k ? "on" : ""}" onclick="go('${k}')">${l}</button>`).join("") + '<button onclick="logout()">Log out</button>';
+  const tb = (k, ic, l) => `<button class="${tab == k ? "on" : ""}" onclick="go('${k}')"><span>${ic}</span>${l}</button>`;
+  $("bn").innerHTML = tb("dash", "🏠", "Home") + tb("prod", "📦", "Products") + '<button class="fab" onclick="openProd()" aria-label="Add product">+</button>' + tb("ord", "🧾", "Orders") + `<button class="${tab == "sup" ? "on" : ""}" onclick="openMore()"><span>⋯</span>More</button>`;
+  const hr = new Date().getHours(), hi = hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
+  const T = { prod: ["Products", "What you sell, what it costs and what is left."], ord: ["Orders", "Track delivery and payment for every order."], sup: ["Suppliers", "The people you buy stock from."] }[tab];
+  $("hd").innerHTML = tab == "dash" ? `<div class="row"><div class="av">${esc(SN.charAt(0).toUpperCase())}</div><div><div class="mute">${hi}</div><b class="nm">${esc(SN)}</b></div></div>` : `<h1>${T[0]}</h1><div class="mute">${T[1]}</div>`;
+  $("top").innerHTML = tab == "dash" ? `<div class="seg">${[["1", "Today"], ["30", "30 days"], ["365", "Year"]].map(([v, l]) => `<button class="${range == v ? "on" : ""}" onclick="range='${v}';draw()">${l}</button>`).join("")}</div>` : tab == "prod" ? '<button class="btn dsk" onclick="openProd()">+ Add product</button>' : "";
+  $("view").innerHTML = { dash: vDash, prod: vProd, ord: vOrd, sup: vSup }[tab]();
+}
+function openMore() {
+  $("dlg").innerHTML = `<h2>More</h2><div style="display:grid;gap:8px"><button class="btn g" onclick="$('dlg').close();go('sup')">👥 Suppliers</button>
+  <a class="btn g" href="/s/${esc(slug)}" target="_blank">🛍️ Open my online store</a>
+  <button class="btn g" onclick="navigator.clipboard.writeText(location.origin+'/s/${esc(slug)}');this.textContent='Link copied'">🔗 Copy store link</button>
+  <button class="btn g" onclick="logout()">Log out</button><button class="btn" onclick="$('dlg').close()">Close</button></div>`;
+  $("dlg").showModal();
+}
+
+function vDash() {
+  const live_ = o => o.status != "Cancelled";
+  const os = O.filter(o => live_(o) && inR(o)), pv = O.filter(o => live_(o) && inP(o));
+  const rev = sum(os, o => o.total), coll = sum(os, o => o.paid || 0), prof = sum(os, o => o.total - (o.cost || 0)), out = rev - coll;
+  const od = sum(os.filter(o => age(o) > 7), due), pend = out - od, pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+  const before = sum(pv, o => o.total), gw = before ? Math.round((rev - before) * 100 / before) : null;
+  const cnt = s => O.filter(o => o.status == s).length;
+  const A = [];
+  P.forEach(p => {
+    if (p.qty != null) { if (p.qty <= 0) A.push(["er", "⚠️", p.name, "Out of stock · tap to restock", p.id]); else if (p.qty <= (p.lowAt ?? 5)) A.push(["wn", "📉", p.name, "Low stock · " + p.qty + " left", p.id]); }
+    if (p.expiry && (p.qty == null || p.qty > 0)) {
+      const d = Math.ceil((new Date(p.expiry) - Date.now()) / 864e5);
+      if (d < 0) A.push(["er", "⏳", p.name, "Expired " + (-d) + " days ago", p.id]); else if (d <= 30) A.push(["wn", "⏳", p.name, "Expires in " + d + " days" + (p.qty != null ? " · " + p.qty + " units" : ""), p.id]);
+    }
+  });
+  A.sort((a, b) => (a[0] == "er" ? 0 : 1) - (b[0] == "er" ? 0 : 1));
+  const T = {}; os.forEach(o => o.lines.forEach(l => T[l.name] = (T[l.name] || 0) + l.price * l.qty));
+  const top = Object.entries(T).sort((a, b) => b[1] - a[1]).slice(0, 4), mx = top.length ? top[0][1] : 1;
+  const M = {}; os.forEach(o => (o.payments || []).forEach(p => M[p.method] = (M[p.method] || 0) + p.amount));
+  const live = P.filter(p => p.active && (p.qty == null || p.qty > 0)).length, dr = P.filter(p => !p.active).length, oos = P.filter(p => p.active && p.qty === 0).length;
+  const lbl = { "1": "today", "30": "30 days", "365": "this year" }[range];
+  return `<div class="hero">${gw == null ? "" : `<span class="gw">${gw >= 0 ? "▲" : "▼"} ${Math.abs(gw)}%</span>`}<small>Sales revenue · ${lbl}</small><div class="big">${inr(rev)}</div>
+    <div class="two"><div><small>Profit</small><b>${inr(prof)}</b></div><div><small>Collected</small><b>${inr(coll)}</b></div></div></div>
+  <div class="qa"><button onclick="openProd()"><span>＋</span>Product</button><button onclick="showOrders('Packed')"><span>🚚</span>Dispatch</button><button onclick="showOrders('unpaid')"><span>₹</span>Unpaid</button><button onclick="go('sup')"><span>👥</span>Suppliers</button></div>
+  <div class="due"><div class="ic wn">⌛</div><div class="grow"><small class="mute">Outstanding</small><br><b>${inr(out)}</b><div class="mute" style="color:var(--er)">${inr(od)} overdue</div></div><button class="btn dk" onclick="showOrders('unpaid')">Remind</button></div>
+  <div class="sh"><h2>Order pipeline</h2><span class="mute">Live</span></div>
+  <div class="hs">${[["🛒", "New orders", "New"], ["📦", "To dispatch", "Packed"], ["🚚", "In transit", "In transit"], ["✅", "Delivered", "Delivered"]].map(([i, l, st]) => `<button class="pc" onclick="showOrders('${st}')"><span>${i}</span><b>${cnt(st)}</b><em>${l}</em></button>`).join("")}</div>
+  <div class="sh"><h2>Needs attention</h2>${A.length ? `<span class="bd er">${A.length}</span>` : ""}</div>
+  ${A.slice(0, 5).map(([c, i, n, t, id]) => `<button class="at" onclick="openProd('${id}')"><div class="ic ${c}">${i}</div><div class="grow"><b>${esc(n)}</b><span class="mute">${esc(t)}</span></div><span class="mute">›</span></button>`).join("") || '<div class="card mute">All good. Nothing needs attention.</div>'}
+  <div class="sh"><h2>Recent orders</h2><a href="#" onclick="showOrders('all');return false" style="color:var(--ac);font-weight:600;text-decoration:none">View all</a></div>
+  ${O.slice(0, 5).map(o => `<div class="oc" onclick="showOrders('all')"><div class="row" style="justify-content:space-between"><b>${esc(o.name)}</b><b>${inr(o.total)}</b></div><div class="mute">#${esc(o.number)}</div>
+    <div class="row" style="margin-top:6px"><span class="bd ${DB[o.status]}">${DL[o.status]}</span><span class="bd ${PB[pst(o)]}">${pst(o)}</span></div></div>`).join("") || '<div class="card mute">No orders yet. Share your store link to get the first one.</div>'}
+  <div class="two"><div><div class="sh"><h2>Payment tracking</h2></div><div class="card"><div class="stk"><i style="width:${pct(coll, rev)}%;background:var(--ok)"></i><i style="width:${pct(pend, rev)}%;background:#e0a800"></i><i style="width:${pct(od, rev)}%;background:var(--er)"></i></div>
+    <div class="row mute" style="justify-content:space-between"><span>● Collected<br><b style="color:var(--ink)">${inr(coll)}</b></span><span>● Pending<br><b style="color:var(--ink)">${inr(pend)}</b></span><span>● Overdue<br><b style="color:var(--ink)">${inr(od)}</b></span></div>
+    <div style="margin-top:10px">${Object.entries(M).map(([k, v]) => `<span class="chip">${k} ${pct(v, coll)}%</span>`).join("") || '<span class="mute">No payments recorded yet.</span>'}</div></div></div>
+  <div><div class="sh"><h2>Top products</h2></div><div class="card">${top.map(([n, v]) => `<div class="row" style="justify-content:space-between"><span>${esc(n)}</span><span class="mute">${inr(v)}</span></div><div class="bar"><i style="width:${Math.round(v * 100 / mx)}%"></i></div>`).join("") || '<span class="mute">No sales in this period.</span>'}</div></div></div>
+  <div class="store"><div class="row" style="justify-content:space-between"><b>🛍️ Online store</b><a href="/s/${esc(slug)}" target="_blank">Open ↗</a></div>
+    <div class="st">${[["Live", live], ["Drafts", dr], ["Out of stock", oos]].map(([l, v]) => `<div><b>${v}</b>${l}</div>`).join("")}</div></div>`;
+}
+
+function vProd() {
+  return P.map(p => { const low = p.qty != null && p.qty <= (p.lowAt ?? 5);
+    return `<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(p.name)}</b><span class="bd ${p.active ? "ok" : "nt"}">${p.active ? "Live" : "Draft"}</span></div>
+    <div class="mute">${esc(p.supplier || "No supplier")}${p.expiry ? " · expires " + esc(p.expiry) : ""}</div>
+    <div class="row" style="margin:8px 0"><span>Price <b>${inr(p.price)}</b></span><span class="mute">Cost ${inr(p.cost || 0)}</span><span class="mute">Margin ${p.price ? Math.round((p.price - (p.cost || 0)) * 100 / p.price) + "%" : "—"}</span><span class="bd ${low ? "wn" : "nt"}">Stock ${p.qty == null ? "—" : p.qty}</span></div>
+    <div class="acts" style="margin:0"><button class="btn g sm" onclick="openProd('${p.id}')">Edit</button><button class="btn g sm" onclick="delProd('${p.id}')">Delete</button></div></div>`; }).join("") || '<p class="mute">No products yet. Tap + to add your first one.</p>';
+}
+
+function openProd(id) {
+  const p = P.find(x => x.id == id) || { active: true, lowAt: 5 };
+  $("dlg").innerHTML = `<form onsubmit="saveProd(event,'${id || ""}')"><h2>${id ? "Edit product" : "Add product"}</h2>
+  <label>Name<input name="name" required value="${esc(p.name)}"></label><label>Description<input name="description" value="${esc(p.description)}"></label>
+  <div class="fg"><label>Purchase price (₹)<input name="cost" type="number" min="0" step="any" value="${esc(p.cost)}"></label><label>Selling price (₹)<input name="price" type="number" min="0" step="any" required value="${esc(p.price)}"></label>
+  <label>Quantity in stock<input name="qty" type="number" min="0" step="1" required value="${esc(p.qty)}"></label><label>Alert when stock is this low<input name="lowAt" type="number" min="0" value="${esc(p.lowAt)}"></label>
+  <label>Expiry date (optional)<input name="expiry" type="date" value="${esc(p.expiry)}"></label>
+  <label>Supplier<select name="supplier" style="width:100%;margin:4px 0 10px"><option value="">None</option>${S.map(s => `<option ${s.name == p.supplier ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label></div>
+  <label>Photo link (optional)<input name="image" value="${esc(p.image)}"></label>
+  <label class="ck"><input type="checkbox" name="active" ${p.active ? "checked" : ""}> Show on the online store</label>
+  <div class="acts"><button type="button" class="btn g" onclick="$('dlg').close()">Cancel</button><button class="btn">Save product</button></div></form>`;
+  $("dlg").showModal();
+}
+function saveProd(e, id) {
+  e.preventDefault(); const f = new FormData(e.target), b = Object.fromEntries(f); b.active = !!f.get("active");
+  act(async () => { await api(base + "/products" + (id ? "/" + id : ""), id ? "PUT" : "POST", b); $("dlg").close(); });
+}
+function delProd(id) { if (confirm("Delete this product? Past orders keep their details.")) act(() => api(base + "/products/" + id, "DELETE")); }
+
+function vOrd() {
+  const L = O.filter(o => flt == "all" || (flt == "unpaid" ? o.status != "Cancelled" && due(o) > 0 : o.status == flt));
+  return `<div class="card"><label>Show <select onchange="flt=this.value;draw()">${[["all", "All orders"], ["New", "New"], ["Packed", "To dispatch"], ["In transit", "In transit"], ["Delivered", "Delivered"], ["Cancelled", "Cancelled"], ["unpaid", "Unpaid"]].map(([v, l]) => `<option value="${v}" ${flt == v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>` +
+  (L.map(o => { const ps = pst(o); return `<div class="card"><div class="row"><b>#${esc(o.number)}</b><span class="mute">${dt(o)}</span><span class="bd ${PB[ps]}">${ps}</span></div>
+    <div>${esc(o.name)} · ${esc(o.phone)}</div><div class="mute">${esc(o.address)}</div><div style="margin:6px 0">${o.lines.map(l => l.qty + " × " + esc(l.name)).join(", ")}</div>
+    <div><b>${inr(o.total)}</b> · paid ${inr(o.paid || 0)} · due ${inr(due(o))}</div>${(o.payments || []).length ? `<div class="mute">${o.payments.map(p => inr(p.amount) + " " + p.method).join(", ")}</div>` : ""}
+    <div class="acts"><select ${o.status == "Cancelled" ? "disabled" : ""} onchange="setStatus('${esc(o.number)}',this.value)">${Object.keys(DL).map(k => `<option value="${k}" ${o.status == k ? "selected" : ""}>${DL[k]}</option>`).join("")}</select>
+    ${o.status != "Cancelled" && due(o) > 0 ? `<button class="btn sm" onclick="openPay('${esc(o.number)}')">Record payment</button><a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}">Remind on WhatsApp</a>` : ""}</div></div>`; }).join("") || '<p class="mute">No orders here yet.</p>');
+}
+function setStatus(n, v) {
+  if (v == "Cancelled" && !confirm("Cancel this order? The items go back into stock.")) return draw();
+  act(() => api(base + "/orders/" + n, "PATCH", { status: v }));
+}
+function openPay(n) {
+  const o = O.find(x => x.number == n);
+  $("dlg").innerHTML = `<form onsubmit="savePay(event,'${esc(n)}')"><h2>Record payment</h2><p class="mute">Order #${esc(n)} · still due ${inr(due(o))}</p>
+  <label>Amount received (₹)<input name="amount" type="number" min="1" step="any" max="${due(o)}" required value="${due(o)}"></label>
+  <label>How was it paid?<select name="method" style="width:100%;margin:4px 0 10px">${["UPI", "Cash", "Card", "Bank", "COD"].map(x => `<option>${x}</option>`).join("")}</select></label>
+  <div class="acts"><button type="button" class="btn g" onclick="$('dlg').close()">Cancel</button><button class="btn">Save payment</button></div></form>`;
+  $("dlg").showModal();
+}
+function savePay(e, n) { e.preventDefault(); const b = Object.fromEntries(new FormData(e.target)); act(async () => { await api(base + "/orders/" + n + "/payments", "POST", b); $("dlg").close(); }); }
+
+function vSup() {
+  return `<form class="card" onsubmit="addSup(event)"><b>Add a supplier</b><div class="fg" style="margin-top:8px"><label>Name<input name="name" required></label><label>Phone<input name="phone"></label></div>
+  <label>Note (optional)<input name="note"></label><button class="btn">Add supplier</button></form>` +
+  (S.map(s => `<div class="card row" style="justify-content:space-between"><div><b>${esc(s.name)}</b> <span class="mute">${esc(s.phone)} ${esc(s.note)}</span><div class="mute">${P.filter(p => p.supplier == s.name).length} products</div></div><button class="btn g sm" onclick="delSup('${s.id}')">Delete</button></div>`).join("") || '<p class="mute">No suppliers yet.</p>');
+}
+function addSup(e) { e.preventDefault(); const b = Object.fromEntries(new FormData(e.target)); act(() => api(base + "/suppliers", "POST", b)); }
+function delSup(id) { if (confirm("Delete this supplier? Products keep the name.")) act(() => api(base + "/suppliers/" + id, "DELETE")); }
+</script>
+</body>
+</html>

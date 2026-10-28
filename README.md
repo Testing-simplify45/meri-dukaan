@@ -5,7 +5,7 @@ Every order is saved and an email is sent to you.
 
 ## How it works
 - You open `/admin`, type your password, and create a store. You get a shop link like `/s/asha-sarees`.
-- The store owner opens their manage page with their store key to add products and see orders.
+- The store owner opens their manage page (`/manage?store=your-link-word`) with their store key. It works like an app on a phone: a home dashboard, products with stock and expiry, orders with delivery and payment tracking, and suppliers.
 - A customer opens the shop link, adds items, enters their address, and confirms the order. There is no payment step.
 - The order is saved and you get an email.
 
@@ -40,6 +40,11 @@ Every order is saved and an email is sent to you.
 1. Open `your-link/admin` and log in with your password.
 2. Create a store, open its manage page, and add a product.
 3. Open the shop link, place a test order, and check your email.
+
+## Updating the app later
+1. Unzip the new zip file.
+2. Open your repository on GitHub, click **Add file → Upload files**, and drag in everything from the new folder, including the `public` folder. Files with the same names are replaced.
+3. Click **Commit changes**. Vercel notices and updates your website by itself in about a minute. Your secrets and your data stay as they are.
 
 ## Good to know
 - Vercel's free plan is for personal, non-commercial use only. If you start selling store links or taking money through this, you need a paid plan.

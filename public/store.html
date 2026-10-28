@@ -15,7 +15,7 @@ h1{margin:0;font-size:1.6rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
 .card img,.ph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:var(--bg)}
 .ph{display:grid;place-items:center;font-size:2.6rem}
-h3{margin:0;font-size:1rem}.price{font-weight:700}
+h3{margin:0;font-size:1rem}.price{font-weight:700}.d{font-size:.85rem;color:var(--mute)}
 button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:var(--on);cursor:pointer}
 button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 button:disabled{opacity:.5}
@@ -56,14 +56,15 @@ const total = () => Object.entries(cart).reduce((t, [id, q]) => t + find(id).pri
 function draw() {
   $("grid").innerHTML = shop.products.length ? shop.products.map(p =>
     `<div class="card">${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">` : '<div class="ph">🛍️</div>'}
-     <h3>${esc(p.name)}</h3><div class="price">₹${p.price}</div><button onclick="add('${p.id}')">Add to cart</button></div>`).join("")
+     <h3>${esc(p.name)}</h3>${p.description ? `<div class="d">${esc(p.description)}</div>` : ""}<div class="price">₹${p.price}</div><button onclick="add('${p.id}')" ${p.qty !== null && (cart[p.id] || 0) >= p.qty ? "disabled" : ""}>${p.qty === 0 ? "Out of stock" : "Add to cart"}</button></div>`).join("")
     : '<p class="empty">No products yet.</p>';
   const n = Object.values(cart).reduce((a, b) => a + b, 0);
   $("bar").style.display = n ? "flex" : "none";
   $("sum").textContent = n + " item" + (n > 1 ? "s" : "") + " · ₹" + total();
 }
-function add(id) { cart[id] = (cart[id] || 0) + 1; draw(); }
+function add(id) { const q = find(id).qty; if (q !== null && (cart[id] || 0) >= q) return; cart[id] = (cart[id] || 0) + 1; draw(); }
 function chg(id, d) {
+  const q = find(id).qty; if (d > 0 && q !== null && cart[id] >= q) return openCart();
   cart[id] += d; if (cart[id] <= 0) delete cart[id];
   draw(); Object.keys(cart).length ? openCart() : $("cartDlg").close();
 }

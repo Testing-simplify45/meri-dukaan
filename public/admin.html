@@ -5,36 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Meri Dukaan admin</title>
 <style>
-:root{color-scheme:light dark;--bg:#f6f7f9;--card:#fff;--ink:#1d2433;--mute:#667085;--line:#e3e7ee;--accent:#0e7c7b;--on:#fff;--err:#b3261e}
-@media(prefers-color-scheme:dark){:root{--bg:#10151f;--card:#182030;--ink:#eef1f6;--mute:#9aa6bb;--line:#2a3550;--accent:#3cc4c2;--on:#06201f;--err:#ff8a80}}
+:root{color-scheme:light dark;--bg:#f6f7f9;--card:#fff;--ink:#1d2433;--mute:#667085;--line:#e3e7ee;--accent:#6a3de8;--on:#fff;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#10151f;--card:#182030;--ink:#eef1f6;--mute:#9aa6bb;--line:#2a3550;--accent:#a58bff;--on:#150b3a;--err:#ff8a80}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
 .wrap{max-width:760px;margin:0 auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;overflow-wrap:anywhere}
-input,select{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);width:100%;margin:4px 0 8px}
-button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:9px 14px;background:var(--accent);color:var(--on);cursor:pointer;margin:2px 4px 2px 0}
-button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.err{color:var(--err);min-height:1.2em}.mute{color:var(--mute);font-size:.88rem}
-code{background:var(--bg);padding:2px 6px;border-radius:6px}
-a{color:var(--accent)}
+input{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);width:100%;margin:4px 0 8px}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:9px 14px;background:var(--accent);color:var(--on);cursor:pointer}
+.err{color:var(--err);min-height:1.2em}a{color:var(--accent)}code{background:var(--bg);padding:2px 6px;border-radius:6px}
 :focus-visible{outline:3px solid #f5b700;outline-offset:2px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1 id="title">Admin</h1>
-  <div id="login" class="card">
-    <label>Password or store key<input id="key" type="password" autocomplete="current-password"></label>
-    <button onclick="login()">Open</button><p class="err" id="err"></p>
-  </div>
+  <div id="login" class="card"><label>Your password<input id="key" type="password" autocomplete="current-password"></label><button onclick="login()">Open</button><p class="err" id="err"></p></div>
   <div id="main" hidden></div>
 </div>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const slug = new URLSearchParams(location.search).get("store");
-let key = sessionStorage.getItem("k") || "", P = [];
-
+const old = new URLSearchParams(location.search).get("store");
+if (old) location.replace("/manage?store=" + encodeURIComponent(old)); // older manage links still work
+let key = sessionStorage.getItem("k") || "";
 async function api(p, method, body) {
   const r = await fetch(p, { method: method || "GET", headers: { "x-key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => ({}));
@@ -43,14 +37,10 @@ async function api(p, method, body) {
 }
 async function login() {
   key = $("key").value || key;
-  try {
-    slug ? await manage() : await platform();
-    sessionStorage.setItem("k", key); $("login").hidden = true; $("main").hidden = false;
-  } catch (e) { $("err").textContent = e.message; }
+  try { await platform(); sessionStorage.setItem("k", key); $("login").hidden = true; $("main").hidden = false; }
+  catch (e) { $("err").textContent = e.message; }
 }
-if (key) login();
-
-// ----- you: create stores and get links -----
+if (key && !old) login();
 async function platform() {
   const list = await api("/api/admin/stores");
   $("title").textContent = "Your stores";
@@ -58,33 +48,13 @@ async function platform() {
     <input id="sn" placeholder="Store name, e.g. Asha Sarees"><input id="sl" placeholder="Link word, e.g. asha-sarees">
     <input id="se" type="email" placeholder="Store owner’s email (optional)"><button onclick="mk()">Create store</button><p class="err" id="e2"></p></div>` +
     list.map(s => `<div class="card"><b>${esc(s.name)}</b><br>Shop link: <a href="/s/${esc(s.slug)}" target="_blank">${location.origin}/s/${esc(s.slug)}</a>
-      <br>Manage page: <a href="/admin?store=${esc(s.slug)}" target="_blank">${location.origin}/admin?store=${esc(s.slug)}</a>
+      <br>Manage page: <a href="/manage?store=${esc(s.slug)}" target="_blank">${location.origin}/manage?store=${esc(s.slug)}</a>
       <br>Store key: <code>${esc(s.adminKey)}</code></div>`).join("");
 }
 async function mk() {
   try { await api("/api/admin/stores", "POST", { name: $("sn").value, slug: $("sl").value, ownerEmail: $("se").value }); platform(); }
   catch (e) { $("e2").textContent = e.message; }
 }
-
-// ----- store manager: products and orders -----
-async function manage() {
-  const [ps, os] = await Promise.all([api(`/api/manage/${slug}/products`), api(`/api/manage/${slug}/orders`)]);
-  P = ps; $("title").textContent = "Manage store";
-  $("main").innerHTML = `<p class="mute">Customer shop link: <a href="/s/${esc(slug)}" target="_blank">${location.origin}/s/${esc(slug)}</a></p>
-    <div class="card"><b>Add a product</b><input id="pn" placeholder="Product name"><input id="pp" type="number" min="0" placeholder="Price in ₹">
-    <input id="pi" placeholder="Photo link (optional)"><button onclick="addP()">Add product</button><p class="err" id="e2"></p></div>
-    <h2>Products</h2>` + (ps.map(p => `<div class="card"><b>${esc(p.name)}</b> · ₹${p.price} ${p.active ? "" : '<span class="mute">(hidden)</span>'}<br>
-      <button class="ghost" onclick="edP('${p.id}')">Edit</button><button class="ghost" onclick="tgP('${p.id}')">${p.active ? "Hide" : "Show"}</button><button class="ghost" onclick="rmP('${p.id}')">Delete</button></div>`).join("") || '<p class="mute">No products yet.</p>') +
-    `<h2>Orders</h2>` + (os.map(o => `<div class="card"><b>${esc(o.number)}</b> <span class="mute">${o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}</span><br>
-      ${esc(o.name)} · ${esc(o.phone)}<br>${esc(o.address)}<br>${o.lines.map(l => `${l.qty} × ${esc(l.name)}`).join(", ")} — <b>₹${o.total}</b>
-      <select onchange="st('${esc(o.number)}',this.value)">${["New", "Packed", "Delivered", "Cancelled"].map(s => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}</select></div>`).join("") || '<p class="mute">No orders yet.</p>');
-}
-const act = async f => { try { await f(); manage(); } catch (e) { alert(e.message); } };
-const addP = () => act(async () => { await api(`/api/manage/${slug}/products`, "POST", { name: $("pn").value, price: $("pp").value, image: $("pi").value }); });
-const edP = id => { const p = P.find(x => x.id === id), n = prompt("Product name", p.name); if (n === null) return; const pr = prompt("Price in ₹", p.price); if (pr === null) return; act(() => api(`/api/manage/${slug}/products/${id}`, "PUT", { ...p, name: n, price: pr })); };
-const tgP = id => { const p = P.find(x => x.id === id); act(() => api(`/api/manage/${slug}/products/${id}`, "PUT", { ...p, active: !p.active })); };
-const rmP = id => { if (confirm("Delete this product?")) act(() => api(`/api/manage/${slug}/products/${id}`, "DELETE")); };
-const st = (n, s) => act(() => api(`/api/manage/${slug}/orders/${n}`, "PATCH", { status: s }));
 </script>
 </body>
 </html>
