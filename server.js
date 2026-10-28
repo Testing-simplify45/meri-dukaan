@@ -29,7 +29,10 @@ const sub = (req, name) => store(req.params.slug).collection(name);
 const STATUSES = ["New", "Packed", "In transit", "Delivered", "Cancelled"];
 const METHODS = ["UPI", "Cash", "Card", "Bank", "COD"];
 const ALL = { add: true, stock: true, cost: true, tags: true, orders: true }; // things a staff member can be allowed to do
-const cleanPerms = b => Object.fromEntries(Object.keys(ALL).map(k => [k, !!(b && b[k])]));
+const cleanPerms = b => ({
+  ...Object.fromEntries(Object.keys(ALL).map(k => [k, !!(b && b[k])])),
+  orderView: b && Array.isArray(b.orderView) ? STATUSES.filter(s => b.orderView.includes(s)) : ["New", "Packed"], // by default staff only see new and to-dispatch orders
+});
 
 // ---------- logins: staff get a signed token, the owner uses the store key ----------
 const secret = () => process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || "";
@@ -40,6 +43,7 @@ const verify = t => {
   if (!b || !sig || !secret() || !same(sig, mac(b))) return null;
   try { const p = JSON.parse(Buffer.from(b, "base64url").toString()); return p.exp > Date.now() ? p : null; } catch (e) { return null; }
 };
+const invSig = (slug, number) => mac("invoice:" + slug + ":" + number).slice(0, 24); // makes each invoice link impossible to guess
 const hash = (pw, salt = crypto.randomBytes(16).toString("hex")) => salt + ":" + crypto.scryptSync(pw, salt, 32).toString("hex");
 const check = (pw, stored) => same(hash(pw, String(stored).split(":")[0]), stored);
 
@@ -103,7 +107,7 @@ app.post("/api/store/:slug/orders", rateLimit({ windowMs: 10 * 60 * 1000, limit:
       if (!p.exists || !p.data().active) throw new Bad("An item in your cart is no longer available.");
       const d = p.data(), q = want[ids[i]];
       if (d.qty != null && d.qty < q) throw new Bad(d.qty > 0 ? `Only ${d.qty} left of ${d.name}.` : `${d.name} is out of stock.`);
-      lines.push({ id: p.id, name: d.name, price: d.price, cost: d.cost || 0, qty: q });
+      lines.push({ id: p.id, name: d.name, price: d.price, cost: d.cost || 0, qty: q, photo: (d.photos || [])[0] || "" });
       total += d.price * q; cost += (d.cost || 0) * q; // prices always come from the database
     });
     snaps.forEach((p, i) => { if (p.data().qty != null) t.update(p.ref, { qty: p.data().qty - want[ids[i]] }); });
@@ -144,7 +148,7 @@ const auth = h(async (req, res, next) => {
   const s = await store(req.params.slug).get();
   if (!s.exists) return res.status(401).json({ error: "Wrong key" });
   const k = req.get("x-key");
-  if (k && (same(k, s.data().adminKey) || same(k, process.env.ADMIN_PASSWORD))) { req.who = { role: "owner", name: "Owner", perms: ALL }; return next(); }
+  if (k && (same(k, s.data().adminKey) || same(k, process.env.ADMIN_PASSWORD))) { req.who = { role: "owner", name: "Owner", perms: { ...ALL, orderView: STATUSES } }; return next(); }
   const p = verify(req.get("x-token"));
   if (p && p.slug === req.params.slug) {
     const u = await sub(req, "users").doc(p.uid).get();
@@ -286,17 +290,28 @@ app.delete(m + "/users/:id", auth, ownerOnly, h(async (req, res) => { await sub(
 // ----- orders -----
 app.get(m + "/orders", auth, need("orders"), h(async (req, res) => {
   const s = await sub(req, "orders").orderBy("createdAt", "desc").limit(500).get();
-  res.json(s.docs.map(d => { const x = d.data(); return { ...x, createdAt: x.createdAt ? x.createdAt.toDate().toISOString() : null, paid: x.paid || 0, payments: x.payments || [], seen: x.seen !== false }; }));
+  const rows = s.docs.map(d => { const x = d.data(); return { ...x, createdAt: x.createdAt ? x.createdAt.toDate().toISOString() : null, paid: x.paid || 0, payments: x.payments || [], seen: x.seen !== false }; });
+  if (req.who.role === "owner") return res.json(rows.map(o => ({ ...o, invKey: invSig(req.params.slug, o.number) })));
+  res.json(rows.filter(o => req.who.perms.orderView.includes(o.status)).map(o => ({
+    number: o.number, name: o.name, phone: o.phone, address: o.address, status: o.status, createdAt: o.createdAt, seen: o.seen,
+    lines: (o.lines || []).map(l => ({ id: l.id, name: l.name, qty: l.qty, photo: l.photo || "" })),
+  })));
 }));
-app.post(m + "/orders/:number/seen", auth, need("orders"), h(async (req, res) => { await sub(req, "orders").doc(req.params.number).update({ seen: true }); res.json({ ok: true }); }));
+app.post(m + "/orders/:number/seen", auth, need("orders"), h(async (req, res) => {
+  const ref = sub(req, "orders").doc(req.params.number), o = await ref.get();
+  if (!o.exists || (req.who.role !== "owner" && !req.who.perms.orderView.includes(o.data().status))) throw new Bad("Order not found.");
+  await ref.update({ seen: true }); res.json({ ok: true });
+}));
 app.patch(m + "/orders/:number", auth, need("orders"), h(async (req, res) => {
-  const st = req.body.status;
+  const st = req.body.status, isOwner = req.who.role === "owner";
   if (!STATUSES.includes(st)) throw new Bad("Bad status");
+  if (!isOwner && st === "Cancelled") throw new Bad("Only the owner can cancel an order.");
   const oref = sub(req, "orders").doc(req.params.number);
   await db.runTransaction(async t => {
     const o = await t.get(oref);
     if (!o.exists) throw new Bad("Order not found");
     const d = o.data();
+    if (!isOwner && !req.who.perms.orderView.includes(d.status)) throw new Bad("You can’t change that order.");
     if (d.status === "Cancelled") throw new Bad("A cancelled order can’t be changed.");
     if (st === "Cancelled") { // put the items back into stock
       const ls = (d.lines || []).filter(l => l.id);
@@ -307,7 +322,18 @@ app.patch(m + "/orders/:number", auth, need("orders"), h(async (req, res) => {
   });
   res.json({ ok: true });
 }));
-app.post(m + "/orders/:number/payments", auth, need("orders"), h(async (req, res) => {
+// payment dropdown: mark an order unpaid, or fully paid by one method (owner only)
+app.put(m + "/orders/:number/payment", auth, ownerOnly, h(async (req, res) => {
+  const oref = sub(req, "orders").doc(req.params.number), o = await oref.get();
+  if (!o.exists) throw new Bad("Order not found");
+  if (req.body.mode === "unpaid") await oref.update({ paid: 0, payments: [], seen: true });
+  else {
+    if (!METHODS.includes(req.body.method)) throw new Bad("Choose how it was paid.");
+    await oref.update({ paid: o.data().total, payments: [{ amount: o.data().total, method: req.body.method, at: new Date().toISOString() }], seen: true });
+  }
+  res.json({ ok: true });
+}));
+app.post(m + "/orders/:number/payments", auth, ownerOnly, h(async (req, res) => {
   const amount = Number(req.body.amount), method = req.body.method;
   if (!(amount > 0) || !METHODS.includes(method)) throw new Bad("Enter an amount and a payment method.");
   const oref = sub(req, "orders").doc(req.params.number), o = await oref.get();
@@ -318,11 +344,27 @@ app.post(m + "/orders/:number/payments", auth, need("orders"), h(async (req, res
   res.json({ ok: true });
 }));
 
+// ---------- invoice: created from the order, opened with a private link ----------
+app.get("/api/invoice/:slug/:number", h(async (req, res) => {
+  const nf = () => res.status(404).json({ error: "Invoice not found" });
+  if (!same(req.query.k, invSig(req.params.slug, req.params.number))) return nf();
+  const [s, o] = await Promise.all([store(req.params.slug).get(), sub(req, "orders").doc(req.params.number).get()]);
+  if (!s.exists || !o.exists) return nf();
+  const d = o.data();
+  const lines = await Promise.all((d.lines || []).map(async l => {
+    let ph = l.photo; if (!ph && l.id) { const p = await sub(req, "products").doc(l.id).get(); ph = p.exists ? (p.data().photos || [])[0] : ""; }
+    return { name: l.name, qty: l.qty, price: l.price, amount: l.price * l.qty, photo: ph ? `/api/photo/${req.params.slug}/${ph}` : "" };
+  }));
+  res.json({ store: s.data().name, number: d.number, date: d.createdAt ? d.createdAt.toDate().toISOString() : null, name: d.name, phone: d.phone, address: d.address,
+    lines, total: d.total, paid: d.paid || 0, due: Math.max(0, d.total - (d.paid || 0)), methods: (d.payments || []).map(p => p.method), status: d.status });
+}));
+
 // ---------- pages ----------
 const page = f => (req, res) => res.sendFile(path.join(__dirname, "public", f));
 app.get("/s/:slug", page("store.html"));
 app.get("/admin", page("admin.html"));
 app.get("/manage", page("manage.html"));
+app.get("/invoice/:slug/:number", page("invoice.html"));
 app.get("/", (req, res) => res.redirect("/admin"));
 
 module.exports = app; // Vercel uses this export

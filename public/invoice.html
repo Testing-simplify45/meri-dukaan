@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Invoice</title>
+<style>
+:root{color-scheme:light dark;--bg:#f3f4f7;--card:#fff;--ink:#1b2133;--mute:#6b7488;--line:#e6e9f0;--ac:#6a3de8;--on:#fff;--ok:#12805c;--er:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1220;--card:#171c2e;--ink:#eceffa;--mute:#98a2ba;--line:#2a3150;--ac:#a58bff;--on:#150b3a;--ok:#5fd6a6;--er:#ff9a92}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top,0px) 12px calc(24px + env(safe-area-inset-bottom,0px))}
+.inv{max-width:640px;margin:16px auto;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+.top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--line);padding-bottom:14px}
+h1{margin:0;font-size:1.4rem}.tag{font-weight:800;letter-spacing:2px;color:var(--ac)}.mute{color:var(--mute);font-size:.88rem}
+.to{margin:14px 0}.row{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row img,.row .ph{width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--bg);display:grid;place-items:center;flex:none}
+.nm{flex:1;min-width:0}.nm b{display:block}.amt{font-weight:700;white-space:nowrap}
+.sum{margin-top:12px}.sum div{display:flex;justify-content:space-between;padding:3px 0}.sum .t{font-size:1.2rem;font-weight:800;border-top:2px solid var(--line);margin-top:6px;padding-top:8px}
+.st{display:inline-block;margin-top:8px;padding:3px 12px;border-radius:999px;font-weight:700;font-size:.82rem}.paid{background:rgba(18,128,92,.15);color:var(--ok)}.unpaid{background:rgba(179,38,30,.13);color:var(--er)}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:11px 18px;background:var(--ac);color:var(--on);cursor:pointer;margin-top:16px}
+.err{text-align:center;padding:60px 0}.foot{text-align:center;margin-top:16px}
+@media print{body{background:#fff;color:#000;padding:0}.inv{border:0;margin:0;max-width:none}.noprint{display:none}}
+</style>
+</head>
+<body>
+<div class="inv" id="inv"><p class="err mute">Loading invoice…</p></div>
+<script>
+const [, , slug, number] = location.pathname.split("/");
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const inr = n => "₹" + Math.round(n * 100 / 100).toLocaleString("en-IN");
+fetch(`/api/invoice/${encodeURIComponent(slug)}/${encodeURIComponent(number)}${location.search}`).then(r => r.ok ? r.json() : Promise.reject()).then(d => {
+  document.title = "Invoice " + d.number + " – " + d.store;
+  const when = d.date ? new Date(d.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "";
+  $("inv").innerHTML = `<div class="top"><div><h1>${esc(d.store)}</h1><div class="mute">Thank you for your order</div></div><div style="text-align:right"><div class="tag">INVOICE</div><div class="mute">No. INV-${esc(d.number.replace("ORD-", ""))}<br>${when}</div></div></div>
+  <div class="to"><div class="mute">Billed to</div><b>${esc(d.name)}</b><div>${esc(d.phone)}</div><div class="mute">${esc(d.address)}</div></div>
+  ${d.lines.map(l => `<div class="row"><div class="nm"><b>${esc(l.name)}</b><span class="mute">Quantity ${l.qty} × ${inr(l.price)}</span></div><div class="amt">${inr(l.amount)}</div>${l.photo ? `<img src="${esc(l.photo)}" alt="">` : '<div class="ph">📦</div>'}</div>`).join("")}
+  <div class="sum"><div class="t"><span>Total</span><span>${inr(d.total)}</span></div><div class="mute"><span>Paid</span><span>${inr(d.paid)}</span></div><div class="mute"><span>Balance due</span><span>${inr(d.due)}</span></div></div>
+  <span class="st ${d.due <= 0 ? "paid" : "unpaid"}">${d.due <= 0 ? "PAID" + (d.methods.length ? " · " + esc([...new Set(d.methods)].join(", ")) : "") : "PAYMENT PENDING"}</span>
+  <div class="foot noprint"><button onclick="print()">Print or save as PDF</button></div>`;
+}).catch(() => { $("inv").innerHTML = '<p class="err">This invoice link is not valid.<br><span class="mute">Please ask the shop to send it again.</span></p>'; });
+function $(id) { return document.getElementById(id); }
+</script>
+</body>
+</html>

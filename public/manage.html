@@ -125,6 +125,7 @@ if (!slug) document.body.innerHTML = '<p style="padding:20px">Open this page fro
 else if (key || tok) start().catch(e => { sessionStorage.removeItem("t"); $("err").textContent = e.message; });
 const act = async f => { try { await f(); await load(); } catch (e) { alert(e.message); } draw(); };
 const logout = () => { sessionStorage.clear(); location.reload(); };
+$("dlg").addEventListener("close", () => { if (!$("app").hidden && tab == "ord") draw(); }); // puts a dropdown back if a dialog was cancelled
 const modal = html => { $("dlg").innerHTML = html; if (!$("dlg").open) $("dlg").showModal(); };
 
 // new orders appear without reloading: check every 30 seconds
@@ -191,7 +192,7 @@ function vDash() {
   const att = `<div class="sh"><h2>Needs attention</h2>${A.length ? `<span class="bd er">${A.length}</span>` : ""}</div>` + (A.slice(0, 6).map(([c, i, n, t, id]) => `<button class="at" onclick="openProd('${id}')"><div class="ic ${c}">${i}</div><div class="grow"><b>${esc(n)}</b><span class="mute">${esc(t)}</span></div><span class="mute">›</span></button>`).join("") || '<div class="card mute">All good. Nothing needs attention.</div>');
   const pipe = `<div class="sh"><h2>Order pipeline</h2><span class="mute">Live</span></div><div class="hs">${[["🛒", "New orders", "New"], ["📦", "To dispatch", "Packed"], ["🚚", "In transit", "In transit"], ["✅", "Delivered", "Delivered"]].map(([i, l, st]) => `<button class="pc" onclick="showOrders('${st}')"><span>${i}</span><b>${cnt(st)}</b><em>${l}</em></button>`).join("")}</div>`;
   const recent = `<div class="sh"><h2>Recent orders</h2><a href="#" onclick="showOrders('all');return false" style="color:var(--ac);font-weight:600;text-decoration:none">View all</a></div>` +
-    (O.slice(0, 5).map(o => `<div class="oc" onclick="showOrders('all')"><div class="row" style="justify-content:space-between"><b>${esc(o.name)}</b><b>${inr(o.total)}</b></div><div class="mute">#${esc(o.number)}</div><div class="row" style="margin-top:6px"><span class="bd ${DB[o.status]}">${DL[o.status]}</span><span class="bd ${PB[pst(o)]}">${pst(o)}</span></div></div>`).join("") || '<div class="card mute">No orders yet. Share your store link to get the first one.</div>');
+    (O.slice(0, 5).map(o => `<div class="oc" onclick="showOrders('all')"><div class="row" style="justify-content:space-between"><b>${esc(o.name)}</b>${owner() ? `<b>${inr(o.total)}</b>` : ""}</div><div class="mute">#${esc(o.number)}</div><div class="row" style="margin-top:6px"><span class="bd ${DB[o.status]}">${DL[o.status]}</span>${owner() ? `<span class="bd ${PB[pst(o)]}">${pst(o)}</span>` : ""}</div></div>`).join("") || '<div class="card mute">No orders yet. Share your store link to get the first one.</div>');
   const live = P.filter(p => p.active && (p.qty == null || p.qty > 0)).length, dr = P.filter(p => !p.active).length, oos = P.filter(p => p.active && p.qty === 0).length;
   const shop = `<div class="store"><div class="row" style="justify-content:space-between"><b>🛍️ Online store</b>${owner() ? `<a href="/s/${esc(slug)}" target="_blank">Open ↗</a>` : ""}</div><div class="st">${[["Live", live], ["Drafts", dr], ["Out of stock", oos]].map(([l, v]) => `<div><b>${v}</b>${l}</div>`).join("")}</div></div>`;
   if (!owner()) return (can("add") ? '<div class="qa" style="grid-template-columns:repeat(2,1fr)"><button onclick="openProd()"><span>＋</span>Add product</button><button onclick="go(\'prod\')"><span>📦</span>Products</button></div>' : "") + att + (can("orders") ? pipe + recent : "") + shop;
@@ -219,13 +220,12 @@ function vDash() {
 function vProd() {
   return P.map(p => {
     const low = p.qty != null && p.qty <= (p.lowAt ?? 5), ph = p.photos && p.photos[0] ? `/api/photo/${slug}/${p.photos[0]}` : p.image, np = (p.photos || []).length;
-    const mg = can("cost") && p.price ? Math.round((p.price - (p.cost || 0)) * 100 / p.price) + "%" : null;
     return `<div class="card"><div class="row" style="flex-wrap:nowrap;align-items:flex-start">${ph ? `<img class="th" src="${esc(ph)}" alt="">` : '<div class="th">📦</div>'}
     <div style="flex:1;min-width:0"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(p.name)}</b>
       ${owner() ? `<span class="row" style="gap:6px;flex-wrap:nowrap"><span class="mute">${p.active ? "Live" : "Off"}</span><label class="sw" title="${p.price > 0 ? "Show on the online store" : "Set a selling price first"}"><input type="checkbox" ${p.active ? "checked" : ""} ${p.price > 0 ? "" : "disabled"} onchange="setLive('${p.id}',this.checked)" aria-label="Live on website"><i></i></label></span>` : `<span class="bd ${p.active ? "ok" : "nt"}">${p.active ? "Live" : "Draft"}</span>`}</div>
       <div class="mute">${esc(p.supplier || "No supplier")}${p.expiry ? " · expires " + esc(p.expiry) : ""}</div>
       <div style="margin-top:4px">${(p.tags || []).map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div></div></div>
-    <div class="row" style="margin:8px 0">${p.price > 0 ? `<span>Price <b>${inr(p.price)}</b></span>` : '<span class="bd wn">Needs a selling price</span>'}${can("cost") ? `<span class="mute">Cost ${inr(p.cost || 0)}</span>` : ""}${mg ? `<span class="mute">Margin ${mg}</span>` : ""}<span class="bd ${low ? "wn" : "nt"}">Stock ${p.qty == null ? "—" : p.qty}</span><span class="mute">${np} photo${np == 1 ? "" : "s"}</span></div>
+    <div class="row" style="margin:8px 0">${p.price > 0 ? `<span>Price <b>${inr(p.price)}</b></span>` : '<span class="bd wn">Needs a selling price</span>'}${can("cost") ? `<span class="mute">Cost ${inr(p.cost || 0)}</span>` : ""}<span class="bd ${low ? "wn" : "nt"}">Stock ${p.qty == null ? "—" : p.qty}</span><span class="mute">${np} photo${np == 1 ? "" : "s"}</span></div>
     <div class="acts" style="margin:0"><button class="btn g sm" onclick="openProd('${p.id}')">Edit</button>${owner() ? `<button class="btn g sm" onclick="delProd('${p.id}')">Delete</button>` : ""}</div></div>`;
   }).join("") || '<p class="mute">No products yet.' + (can("add") ? " Tap + to add your first one." : "") + "</p>";
 }
@@ -272,27 +272,54 @@ async function delPhoto(pid, photo) { try { await api(base + "/products/" + pid 
 function delProd(id) { if (confirm("Delete this product and its photos? Past orders keep their details.")) act(() => api(base + "/products/" + id, "DELETE")); }
 
 // ----- orders -----
+const ph = l => { const id = l.photo || ((P.find(p => p.id == l.id) || {}).photos || [])[0]; return id ? `/api/photo/${slug}/${id}` : ""; };
+const thumb = (l, n) => ph(l) ? `<img src="${esc(ph(l))}" alt="" style="width:${n}px;height:${n}px;border-radius:10px;object-fit:cover;flex:none">` : `<div style="width:${n}px;height:${n}px;border-radius:10px;background:var(--bg);display:grid;place-items:center;flex:none">📦</div>`;
+const itemRow = l => `<div class="row" style="flex-wrap:nowrap;justify-content:space-between;padding:7px 0;border-top:1px solid var(--line)"><b style="flex:1;min-width:0">${esc(l.name)}</b><span class="mute" style="white-space:nowrap">× ${l.qty}</span>${thumb(l, 44)}</div>`;
+const phoneOf = o => { let n = String(o.phone).replace(/\D/g, ""); if (n.length == 10) n = "91" + n; return n; };
+const invLink = o => `${location.origin}/invoice/${slug}/${o.number}?k=${o.invKey}`;
+const waInvoice = o => "https://wa.me/" + phoneOf(o) + "?text=" + encodeURIComponent(`Hello ${o.name}, thank you for your order from ${SN}. Your invoice for order ${o.number} (${inr(o.total)}) is here: ${invLink(o)}`);
+const PO = [["unpaid", "Unpaid"], ["Cash", "Paid · Cash"], ["UPI", "Paid · UPI"], ["Card", "Paid · Card"], ["Bank", "Paid · Bank"], ["COD", "Paid · COD"], ["part", "Part payment…"]];
+const payNow = o => o.status == "Cancelled" ? "unpaid" : due(o) <= 0 ? (((o.payments || []).slice(-1)[0] || {}).method || "Cash") : o.paid > 0 ? "part" : "unpaid";
 function seen(n) {
   const o = O.find(x => x.number == n); if (!o || o.seen !== false) return;
   o.seen = true; const d = document.getElementById("d-" + n); if (d) d.remove(); drawNav(); api(base + "/orders/" + n + "/seen", "POST").catch(() => {});
 }
 function vOrd() {
+  const own = owner(), vis = own ? Object.keys(DL) : (ME.perms.orderView || []);
   const L = O.filter(o => flt == "all" || (flt == "unpaid" ? o.status != "Cancelled" && due(o) > 0 : o.status == flt));
-  return `<div class="card"><label>Show <select onchange="flt=this.value;draw()">${[["all", "All orders"], ["New", "New"], ["Packed", "To dispatch"], ["In transit", "In transit"], ["Delivered", "Delivered"], ["Cancelled", "Cancelled"], ["unpaid", "Unpaid"]].map(([v, l]) => `<option value="${v}" ${flt == v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>` +
-  (L.map(o => { const ps = pst(o); return `<div class="card" style="position:relative" onclick="seen('${esc(o.number)}')">${o.seen === false ? `<i class="dot big" id="d-${esc(o.number)}"></i>` : ""}
-    <div class="row"><b>#${esc(o.number)}</b><span class="mute">${dt(o)}</span><span class="bd ${PB[ps]}">${ps}</span></div>
-    <div>${esc(o.name)} · ${esc(o.phone)}</div><div class="mute">${esc(o.address)}</div><div style="margin:6px 0">${o.lines.map(l => l.qty + " × " + esc(l.name)).join(", ")}</div>
-    <div><b>${inr(o.total)}</b> · paid ${inr(o.paid || 0)} · due ${inr(due(o))}</div>${(o.payments || []).length ? `<div class="mute">${o.payments.map(p => inr(p.amount) + " " + p.method).join(", ")}</div>` : ""}
-    <div class="acts"><select ${o.status == "Cancelled" ? "disabled" : ""} onchange="setStatus('${esc(o.number)}',this.value)">${Object.keys(DL).map(k => `<option value="${k}" ${o.status == k ? "selected" : ""}>${DL[k]}</option>`).join("")}</select>
-    ${o.status != "Cancelled" && due(o) > 0 ? `<button class="btn sm" onclick="openPay('${esc(o.number)}')">Record payment</button><a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}">Remind on WhatsApp</a>` : ""}</div></div>`; }).join("") || '<p class="mute">No orders here yet.</p>');
+  const opts = [["all", "All orders"], ...vis.map(s => [s, DL[s]])]; if (own) opts.push(["unpaid", "Unpaid"]);
+  return `<div class="card"><label>Show <select onchange="flt=this.value;draw()">${opts.map(([v, l]) => `<option value="${v}" ${flt == v ? "selected" : ""}>${l}</option>`).join("")}</select></label>${own ? "" : '<p class="mute" style="margin:8px 0 0">You see new and in-process orders. Once an order is on its way, only the owner sees it.</p>'}</div>` +
+  (L.map(o => { const ps = own ? pst(o) : "", n = esc(o.number), stOpts = own ? Object.keys(DL) : ["New", "Packed", "In transit", "Delivered"];
+    return `<div class="card" style="position:relative" onclick="seen('${n}')">${o.seen === false ? `<i class="dot big" id="d-${n}"></i>` : ""}
+    <div class="row"><b>#${n}</b><span class="mute">${dt(o)}</span>${own ? `<span class="bd ${PB[ps]}">${ps}</span>` : `<span class="bd ${DB[o.status]}">${DL[o.status]}</span>`}</div>
+    <div style="margin-top:4px">${esc(o.name)} · ${esc(o.phone)}</div><div class="mute">${esc(o.address)}</div>
+    <div style="margin:8px 0 6px">${o.lines.map(itemRow).join("")}</div>
+    ${own ? `<div><b>${inr(o.total)}</b> · paid ${inr(o.paid || 0)} · due ${inr(due(o))}</div>` : ""}
+    <div class="row" style="margin-top:10px;align-items:flex-end"><label style="flex:1;min-width:130px">Delivery<select style="width:100%" ${o.status == "Cancelled" ? "disabled" : ""} onchange="setStatus('${n}',this.value)">${stOpts.map(k => `<option value="${k}" ${o.status == k ? "selected" : ""}>${DL[k]}</option>`).join("")}</select></label>
+      ${own ? `<label style="flex:1;min-width:130px">Payment<select style="width:100%" ${o.status == "Cancelled" ? "disabled" : ""} onchange="setPay('${n}',this.value)">${PO.map(([v, l]) => `<option value="${v}" ${payNow(o) == v ? "selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}</div>
+    <div class="acts"><button class="btn sm" onclick="viewOrder('${n}')">View order</button>${own ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">Send invoice</a>${o.status != "Cancelled" && due(o) > 0 ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}">Remind</a>` : ""}` : ""}</div></div>`; }).join("") || '<p class="mute">No orders here yet.</p>');
+}
+function viewOrder(n) {
+  const o = O.find(x => x.number == n), own = owner(); seen(n);
+  modal(`<div><div style="text-align:center"><b style="font-size:1.15rem">${esc(SN)}</b><div class="mute">${own ? "Bill" : "Order slip"}</div></div>
+  <div class="row" style="justify-content:space-between;margin:10px 0"><div><b>Order #${esc(o.number)}</b><div class="mute">${o.createdAt ? new Date(o.createdAt).toLocaleString("en-IN") : ""}</div></div><span class="bd ${DB[o.status]}">${DL[o.status]}</span></div>
+  <div class="card" style="margin:0 0 10px"><b>${esc(o.name)}</b><div>${esc(o.phone)}</div><div class="mute">${esc(o.address)}</div></div>
+  <div class="row mute" style="justify-content:space-between"><span>Item and quantity</span><span>Photo</span></div>
+  ${o.lines.map(l => `<div class="row" style="flex-wrap:nowrap;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)"><div style="min-width:0"><b>${esc(l.name)}</b><div class="mute">Quantity: ${l.qty}${own ? ` × ${inr(l.price)} = <b style="color:var(--ink)">${inr(l.price * l.qty)}</b>` : ""}</div></div>${thumb(l, 64)}</div>`).join("")}
+  ${own ? `<div style="border-top:2px solid var(--line);margin-top:6px;padding-top:8px"><div class="row" style="justify-content:space-between"><b>Total</b><b>${inr(o.total)}</b></div><div class="row mute" style="justify-content:space-between"><span>Paid</span><span>${inr(o.paid || 0)}</span></div><div class="row mute" style="justify-content:space-between"><span>Balance due</span><span>${inr(due(o))}</span></div><div class="mute">Payment: ${pst(o)}${(o.payments || []).length ? " · " + [...new Set(o.payments.map(p => p.method))].join(", ") : ""}</div></div>` : ""}
+  <div class="acts"><button class="btn g" onclick="$('dlg').close()">Close</button>${own ? `<a class="btn g" target="_blank" rel="noopener" href="${esc(invLink(o))}">Open invoice</a><a class="btn" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">Send invoice on WhatsApp</a>` : ""}</div></div>`);
 }
 function setStatus(n, v) {
   if (v == "Cancelled" && !confirm("Cancel this order? The items go back into stock.")) return draw();
   act(() => api(base + "/orders/" + n, "PATCH", { status: v }));
 }
+function setPay(n, v) {
+  if (v == "part") return openPay(n);
+  act(() => api(base + "/orders/" + n + "/payment", "PUT", v == "unpaid" ? { mode: "unpaid" } : { mode: "paid", method: v }));
+}
 function openPay(n) {
   const o = O.find(x => x.number == n);
-  modal(`<form onsubmit="savePay(event,'${esc(n)}')"><h2>Record payment</h2><p class="mute">Order #${esc(n)} · still due ${inr(due(o))}</p>
+  modal(`<form onsubmit="savePay(event,'${esc(n)}')"><h2>Part payment</h2><p class="mute">Order #${esc(n)} · still due ${inr(due(o))}</p>
   <label>Amount received (₹)<input name="amount" type="number" min="1" step="any" max="${due(o)}" required value="${due(o)}"></label>
   <label>How was it paid?<select name="method" style="width:100%;margin:4px 0 10px">${["UPI", "Cash", "Card", "Bank", "COD"].map(x => `<option>${x}</option>`).join("")}</select></label>
   <div class="acts"><button type="button" class="btn g" onclick="$('dlg').close()">Cancel</button><button class="btn">Save payment</button></div></form>`);
@@ -323,7 +350,7 @@ function delTag(id) { if (confirm("Delete this tag? Products keep existing but l
 function vUsr() {
   return `<div class="card"><button class="btn" onclick="openStaff()">+ Add a staff member</button><p class="mute" style="margin:8px 0 0">Staff log in on the same page as you, using their username. Only you can set selling prices and make products live.</p></div>` +
   (U.map(u => `<div class="card"><div class="row" style="justify-content:space-between"><div><b>${esc(u.name)}</b> <span class="mute">@${esc(u.username)}</span></div><label class="sw" title="Allowed to log in"><input type="checkbox" ${u.active ? "checked" : ""} onchange="staffOn('${esc(u.username)}',this.checked)" aria-label="Can log in"><i></i></label></div>
-   <div style="margin:6px 0">${Object.keys(PL).filter(k => u.perms[k]).map(k => `<span class="chip">${esc(PL[k])}</span>`).join("") || '<span class="mute">No permissions yet</span>'}</div>
+   <div style="margin:6px 0">${Object.keys(PL).filter(k => u.perms[k]).map(k => `<span class="chip">${esc(PL[k])}${k == "orders" ? " (" + (u.perms.orderView || []).map(x => DL[x]).join(", ") + ")" : ""}</span>`).join("") || '<span class="mute">No permissions yet</span>'}</div>
    <div class="acts" style="margin:0"><button class="btn g sm" onclick="openStaff('${esc(u.username)}')">Permissions</button><button class="btn g sm" onclick="staffPw('${esc(u.username)}')">New password</button><button class="btn g sm" onclick="delStaff('${esc(u.username)}')">Delete</button></div></div>`).join("") || '<p class="mute">No staff yet.</p>');
 }
 function openStaff(un) {
@@ -331,11 +358,13 @@ function openStaff(un) {
   modal(`<form onsubmit="saveStaff(event,'${un || ""}')"><h2>${un ? "Permissions for " + esc(u.name) : "Add a staff member"}</h2>
   ${un ? "" : '<label>Name<input name="name" required></label><label>Username (they type this to log in)<input name="username" required pattern="[a-z0-9._-]{3,30}" autocapitalize="none"></label><label>Password (6+ characters)<input name="password" type="text" minlength="6" required></label>'}
   <label>What can they do?</label>${Object.keys(PL).map(k => `<label class="ck" style="margin:6px 0"><input type="checkbox" name="${k}" ${u.perms[k] ? "checked" : ""}> ${esc(PL[k])}</label>`).join("")}
-  <p class="mute">They can never change selling prices, make products live, delete anything, or see sales and profit.</p>
+  <label style="margin-top:8px">Which orders can they see? (only matters if “View and update orders” is ticked)</label>${Object.keys(DL).map(k => `<label class="ck" style="margin:4px 0"><input type="checkbox" name="ov_${k}" ${(u.perms.orderView || ["New", "Packed"]).includes(k) ? "checked" : ""}> ${DL[k]}</label>`).join("")}
+  <p class="mute">Staff only get the delivery dropdown on orders. They never see prices, payments or invoices, and only you can cancel an order or change selling prices.</p>
   <div class="acts"><button type="button" class="btn g" onclick="$('dlg').close()">Cancel</button><button class="btn">Save</button></div></form>`);
 }
 function saveStaff(e, un) {
   e.preventDefault(); const f = e.target.elements, perms = Object.fromEntries(Object.keys(PL).map(k => [k, f[k].checked]));
+  perms.orderView = Object.keys(DL).filter(k => e.target.querySelector(`[name="ov_${k}"]`).checked);
   act(async () => { if (un) await api(base + "/users/" + un, "PATCH", { perms }); else await api(base + "/users", "POST", { name: f.name.value, username: f.username.value.toLowerCase(), password: f.password.value, perms }); $("dlg").close(); });
 }
 const staffOn = (un, on) => act(() => api(base + "/users/" + un, "PATCH", { active: on }));

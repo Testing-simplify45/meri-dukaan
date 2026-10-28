@@ -3,6 +3,7 @@
     { "source": "/s/:slug", "destination": "/store.html" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/manage", "destination": "/manage.html" },
+    { "source": "/invoice/:slug/:number", "destination": "/invoice.html" },
     { "source": "/", "destination": "/admin.html" }
   ]
 }
