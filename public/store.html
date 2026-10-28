@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shop</title>
+<style>
+:root{color-scheme:light dark;--bg:#f6f7f9;--card:#fff;--ink:#1d2433;--mute:#667085;--line:#e3e7ee;--accent:#0e7c7b;--on:#fff;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#10151f;--card:#182030;--ink:#eef1f6;--mute:#9aa6bb;--line:#2a3550;--accent:#3cc4c2;--on:#06201f;--err:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top,0px) 0 90px}
+header,.grid{max-width:1000px;margin:0 auto;padding:16px}
+h1{margin:0;font-size:1.6rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding-top:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.card img,.ph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:var(--bg)}
+.ph{display:grid;place-items:center;font-size:2.6rem}
+h3{margin:0;font-size:1rem}.price{font-weight:700}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:var(--on);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.5}
+#bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line);display:none;justify-content:space-between;align-items:center}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);width:min(480px,92vw);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+input,textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);margin:4px 0 10px}
+label{font-size:.85rem;color:var(--mute)}
+.line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0}
+.err{color:var(--err);min-height:1.2em;margin:0 0 8px}.empty{text-align:center;color:var(--mute);padding:40px}
+:focus-visible{outline:3px solid #f5b700;outline-offset:2px}
+</style>
+</head>
+<body>
+<header><h1 id="name">Loading…</h1></header>
+<main class="grid" id="grid"></main>
+<div id="bar"><b id="sum"></b><button onclick="openCart()">View cart</button></div>
+<dialog id="cartDlg"><div id="cartBody"></div></dialog>
+<dialog id="confirmDlg">
+  <h2 style="margin-top:0">Place this order?</h2>
+  <p id="confirmText"></p>
+  <p class="err" id="cerr"></p>
+  <div class="line"><button class="ghost" onclick="$('confirmDlg').close()">Go back</button><button id="yes" onclick="send()">Yes, confirm order</button></div>
+</dialog>
+<script>
+const slug = location.pathname.split("/")[2];
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let shop = { products: [] }, cart = {}, info = { name: "", phone: "", address: "" };
+
+fetch("/api/store/" + slug).then(r => r.ok ? r.json() : Promise.reject())
+  .then(d => { shop = d; document.title = d.name; $("name").textContent = d.name; draw(); })
+  .catch(() => { $("name").textContent = "Store not found"; });
+
+const find = id => shop.products.find(p => p.id === id);
+const total = () => Object.entries(cart).reduce((t, [id, q]) => t + find(id).price * q, 0);
+
+function draw() {
+  $("grid").innerHTML = shop.products.length ? shop.products.map(p =>
+    `<div class="card">${p.image ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">` : '<div class="ph">🛍️</div>'}
+     <h3>${esc(p.name)}</h3><div class="price">₹${p.price}</div><button onclick="add('${p.id}')">Add to cart</button></div>`).join("")
+    : '<p class="empty">No products yet.</p>';
+  const n = Object.values(cart).reduce((a, b) => a + b, 0);
+  $("bar").style.display = n ? "flex" : "none";
+  $("sum").textContent = n + " item" + (n > 1 ? "s" : "") + " · ₹" + total();
+}
+function add(id) { cart[id] = (cart[id] || 0) + 1; draw(); }
+function chg(id, d) {
+  cart[id] += d; if (cart[id] <= 0) delete cart[id];
+  draw(); Object.keys(cart).length ? openCart() : $("cartDlg").close();
+}
+function openCart() {
+  $("cartBody").innerHTML = '<h2 style="margin-top:0">Your cart</h2>' +
+    Object.entries(cart).map(([id, q]) => `<div class="line"><span>${esc(find(id).name)}</span>
+      <span><button class="ghost" onclick="chg('${id}',-1)" aria-label="Remove one">−</button> ${q} <button class="ghost" onclick="chg('${id}',1)" aria-label="Add one">+</button> ₹${find(id).price * q}</span></div>`).join("") +
+    `<div class="line"><b>Total</b><b>₹${total()}</b></div>
+     <label>Your name<input value="${esc(info.name)}" oninput="info.name=this.value" autocomplete="name"></label>
+     <label>Phone number<input type="tel" value="${esc(info.phone)}" oninput="info.phone=this.value" autocomplete="tel"></label>
+     <label>Full delivery address<textarea rows="3" oninput="info.address=this.value" autocomplete="street-address">${esc(info.address)}</textarea></label>
+     <p class="err" id="err"></p>
+     <div class="line"><button class="ghost" onclick="$('cartDlg').close()">Keep shopping</button><button onclick="review()">Place order</button></div>`;
+  if (!$("cartDlg").open) $("cartDlg").showModal();
+}
+function review() {
+  const i = info;
+  if (!i.name.trim() || !/^[0-9+\-\s]{8,15}$/.test(i.phone.trim()) || i.address.trim().length < 8) {
+    $("err").textContent = "Please fill in your name, a valid phone number and your full address."; return;
+  }
+  $("confirmText").textContent = `Total ₹${total()}. We will deliver to ${i.address.trim()} and call you on ${i.phone.trim()} to confirm.`;
+  $("cerr").textContent = ""; $("confirmDlg").showModal();
+}
+async function send() {
+  $("yes").disabled = true;
+  try {
+    const r = await fetch("/api/store/" + slug + "/orders", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...info, items: Object.entries(cart).map(([id, qty]) => ({ id, qty })) })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Could not place the order.");
+    cart = {}; draw(); $("confirmDlg").close();
+    $("cartBody").innerHTML = `<h2 style="margin-top:0">Order placed ✅</h2><p>Your order number is <b>${esc(j.number)}</b>. We’ll call you on ${esc(info.phone)} to arrange delivery.</p><button onclick="$('cartDlg').close()">Done</button>`;
+  } catch (e) { $("cerr").textContent = e.message; }
+  $("yes").disabled = false;
+}
+</script>
+</body>
+</html>
