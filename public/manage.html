@@ -77,7 +77,7 @@ input:disabled,select:disabled{opacity:.6}
 </style>
 </head>
 <body>
-<div id="login" class="card login"><h1>Manage your store</h1><label>Username <span class="mute">(staff only — owners leave this empty)</span><input id="user" autocomplete="username" autocapitalize="none"></label><label>Password or store key<input id="key" type="password" autocomplete="current-password"></label><button class="btn" onclick="login()">Open</button><p class="err" id="err"></p></div>
+<div id="login" class="card login"><h1>Manage your store</h1><label>Username<input id="user" autocomplete="username" autocapitalize="none"></label><label>Password or store key<input id="key" type="password" autocomplete="current-password"></label><button class="btn" onclick="login()">Open</button><p class="err" id="err"></p></div>
 <div id="app" hidden>
   <aside><div class="brand" id="brand">Store</div><nav id="nav"></nav></aside>
   <main><div class="top"><div id="hd"></div><div class="row" id="top"></div></div><div id="view"></div></main>
@@ -91,7 +91,9 @@ const inr = n => "₹" + Math.round(n).toLocaleString("en-IN");
 const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
 const slug = new URLSearchParams(location.search).get("store");
 const base = "/api/manage/" + slug;
-let SN = "Your store", key = sessionStorage.getItem("k") || "", tok = sessionStorage.getItem("t") || "", ME = { role: "owner", perms: {} };
+const SK = "login:" + slug; // remembered on this device, one entry per store
+const saved = (() => { try { return JSON.parse(localStorage.getItem(SK) || "{}"); } catch (e) { return {}; } })();
+let SN = "Your store", key = saved.key || sessionStorage.getItem("k") || "", tok = saved.tok || "", ME = { role: "owner", perms: {} };
 let P = [], O = [], S = [], T = [], U = [], tab = "dash", range = "30", flt = "all";
 const owner = () => ME.role == "owner";
 const can = p => owner() || !!(ME.perms && ME.perms[p]);
@@ -106,7 +108,7 @@ async function api(p, method, body) {
 async function load() { [P, S, T, O, U] = await Promise.all([api(base + "/products"), api(base + "/suppliers"), api(base + "/tags"), can("orders") ? api(base + "/orders") : [], owner() ? api(base + "/users") : []]); }
 async function start() {
   ME = await api(base + "/me"); await load();
-  sessionStorage.setItem("k", key); sessionStorage.setItem("t", tok);
+  try { localStorage.setItem(SK, JSON.stringify({ key, tok })); } catch (e) {}
   $("login").hidden = true; $("app").hidden = false; if (tab == "ord" && !can("orders")) tab = "dash"; draw();
   fetch("/api/store/" + slug).then(r => r.json()).then(d => { SN = d.name; document.title = d.name + " – manage"; draw(); }).catch(() => {});
 }
@@ -119,12 +121,15 @@ async function login() {
       tok = j.token; key = "";
     } else { if (pw) key = pw; tok = ""; }
     await start();
-  } catch (e) { $("err").textContent = e.message; }
+  } catch (e) {
+    key = ""; tok = "";
+    $("err").textContent = !user && /log in again/i.test(e.message) ? "That password or store key doesn’t match this store. Staff: please type your username too." : e.message;
+  }
 }
 if (!slug) document.body.innerHTML = '<p style="padding:20px">Open this page from the list on your admin page.</p>';
-else if (key || tok) start().catch(e => { sessionStorage.removeItem("t"); $("err").textContent = e.message; });
+else if (key || tok) start().catch(() => { try { localStorage.removeItem(SK); } catch (e) {} key = ""; tok = ""; $("err").textContent = "Please log in again."; });
 const act = async f => { try { await f(); await load(); } catch (e) { alert(e.message); } draw(); };
-const logout = () => { sessionStorage.clear(); location.reload(); };
+const logout = () => { try { localStorage.removeItem(SK); } catch (e) {} sessionStorage.clear(); location.reload(); };
 $("dlg").addEventListener("close", () => { if (!$("app").hidden && tab == "ord") draw(); }); // puts a dropdown back if a dialog was cancelled
 const modal = html => { $("dlg").innerHTML = html; if (!$("dlg").open) $("dlg").showModal(); };
 
