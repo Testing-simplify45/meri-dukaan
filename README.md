@@ -41,6 +41,13 @@ Every order is saved and an email is sent to you.
 2. Create a store, open its manage page, and add a product.
 3. Open the shop link, place a test order, and check your email.
 
+## Staff, tags and photos
+- **Staff:** on the manage page open **Staff → Add a staff member**. Pick a username, a password and what they may do (add products, edit quantity and expiry, edit purchase price, assign tags, view orders). Staff log in on the same manage page by typing their username. They can never change selling prices, make products live, delete things or see sales and profit.
+- **Selling price and going live:** only the owner sets these. A product added by staff starts as a draft with no price. The owner sets the price and flips the **Live** switch beside the product.
+- **Tags:** the owner creates them under **Tags** and can reorder them. Staff can assign them to products. Each tag becomes a section on the online store. Products with no tag appear under "More items".
+- **Photos:** up to 5 per product, uploaded from the product form. They are shrunk on the phone first and kept in Firebase, so no paid storage is needed.
+- **New orders:** a red dot shows on **Orders** until you tap the order. The page checks for new orders every 30 seconds.
+
 ## Updating the app later
 1. Unzip the new zip file.
 2. Open your repository on GitHub, click **Add file → Upload files**, and drag in everything from the new folder, including the `public` folder. Files with the same names are replaced.
