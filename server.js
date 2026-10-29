@@ -23,6 +23,7 @@ const h = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(e 
 const clean = (s, n) => String(s || "").trim().slice(0, n);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const same = (a, b) => { a = Buffer.from(String(a || "")); b = Buffer.from(String(b || "")); return b.length > 0 && a.length === b.length && crypto.timingSafeEqual(a, b); };
+const lname = d => { const o = [d.o1, d.o2].filter(Boolean); return o.length && !o.every(v => d.name.toLowerCase().includes(String(v).toLowerCase())) ? `${d.name} (${o.join(", ")})` : d.name; };
 const num = (v, d) => (v === "" || v == null ? d : Number(v));
 const store = slug => db.collection("stores").doc(slug);
 const sub = (req, name) => store(req.params.slug).collection(name);
@@ -65,15 +66,16 @@ async function sendOrderEmail(shop, o) {
 }
 
 // ---------- public: shop page data, photos, placing orders ----------
+const when = d => { const c = d.data().createdAt; return c ? c.toDate().getTime() : 0; };
 app.get("/api/store/:slug", h(async (req, res) => {
   const s = await store(req.params.slug).get();
   if (!s.exists) return res.status(404).json({ error: "Store not found" });
   const [ps, tg] = await Promise.all([sub(req, "products").where("active", "==", true).get(), sub(req, "tags").orderBy("pos").get()]);
   res.json({
     name: s.data().name, tags: tg.docs.map(d => d.data().name),
-    products: ps.docs.map(d => {
+    products: ps.docs.sort((a, b) => when(a) - when(b)).map(d => {
       const x = d.data(), photos = (x.photos || []).map(i => `/api/photo/${req.params.slug}/${i}`);
-      return { id: d.id, name: x.name, price: x.price, description: x.description || "", qty: x.qty == null ? null : x.qty, tags: x.tags || [], photos: photos.length ? photos : (x.image ? [x.image] : []) };
+      return { id: d.id, name: x.name, price: x.price, description: x.description || "", qty: x.qty == null ? null : x.qty, tags: x.tags || [], group: x.mergeUnder || d.id, kind: x.kind || "general", o1: x.o1 || "", o2: x.o2 || "", photos: photos.length ? photos : (x.image ? [x.image] : []) };
     }),
   });
 }));
@@ -107,7 +109,7 @@ app.post("/api/store/:slug/orders", rateLimit({ windowMs: 10 * 60 * 1000, limit:
       if (!p.exists || !p.data().active) throw new Bad("An item in your cart is no longer available.");
       const d = p.data(), q = want[ids[i]];
       if (d.qty != null && d.qty < q) throw new Bad(d.qty > 0 ? `Only ${d.qty} left of ${d.name}.` : `${d.name} is out of stock.`);
-      lines.push({ id: p.id, name: d.name, price: d.price, cost: d.cost || 0, qty: q, photo: (d.photos || [])[0] || "" });
+      lines.push({ id: p.id, name: lname(d), price: d.price, cost: d.cost || 0, qty: q, photo: (d.photos || [])[0] || "" });
       total += d.price * q; cost += (d.cost || 0) * q; // prices always come from the database
     });
     snaps.forEach((p, i) => { if (p.data().qty != null) t.update(p.ref, { qty: p.data().qty - want[ids[i]] }); });
@@ -169,6 +171,10 @@ async function fields(req, b) {
     if (b.name !== undefined) { u.name = clean(b.name, 100); if (!u.name) throw new Bad("Enter a product name."); }
     if (b.description !== undefined) u.description = clean(b.description, 300);
     if (b.supplier !== undefined) u.supplier = clean(b.supplier, 80);
+    if (b.mergeUnder !== undefined) u.mergeUnder = clean(b.mergeUnder, 40); // checked in checkMerge()
+    if (b.kind !== undefined) u.kind = b.kind === "food" ? "food" : "general"; // colour+size, or flavour+weight
+    if (b.o1 !== undefined) u.o1 = clean(b.o1, 40); // colour or flavour
+    if (b.o2 !== undefined) u.o2 = clean(b.o2, 40); // size or weight
   }
   if (can(req, "stock")) {
     if (b.qty !== undefined && b.qty !== "") { const q = Number(b.qty); if (!Number.isInteger(q) || q < 0) throw new Bad("Quantity must be a whole number."); u.qty = q; }
@@ -186,6 +192,16 @@ async function fields(req, b) {
   }
   return u;
 }
+// "Merge under": a product can sit under one main product. The main one can't itself be merged under another.
+async function checkMerge(req, selfId, target) {
+  if (!target) return;
+  if (!/^[A-Za-z0-9]{1,40}$/.test(target) || target === selfId) throw new Bad("Choose a different product to merge under.");
+  const t = await sub(req, "products").doc(target).get();
+  if (!t.exists) throw new Bad("That product no longer exists.");
+  if (t.data().mergeUnder) throw new Bad("That product is itself merged under another one. Choose the main product.");
+  if (selfId && (await sub(req, "products").where("mergeUnder", "==", selfId).get()).docs.length)
+    throw new Bad("Other products are merged under this one, so it can’t be merged under another.");
+}
 const checkLive = d => { if (d.active && !(d.price > 0)) throw new Bad("Set a selling price before making a product live."); };
 
 app.get(m + "/products", auth, h(async (req, res) => {
@@ -195,6 +211,7 @@ app.get(m + "/products", auth, h(async (req, res) => {
 app.post(m + "/products", auth, need("add"), h(async (req, res) => {
   const u = await fields(req, req.body);
   if (!u.name) throw new Bad("Enter a product name.");
+  await checkMerge(req, null, u.mergeUnder);
   const doc = { description: "", supplier: "", cost: 0, qty: 0, lowAt: 5, expiry: "", tags: [], photos: [], price: 0, active: false, ...u, createdAt: stamp() };
   checkLive(doc);
   const r = await sub(req, "products").add(doc); res.json({ id: r.id });
@@ -203,6 +220,7 @@ app.put(m + "/products/:id", auth, need("add", "stock", "cost", "tags"), h(async
   const ref = sub(req, "products").doc(req.params.id), ex = await ref.get();
   if (!ex.exists) throw new Bad("Product not found.");
   const u = await fields(req, req.body);
+  await checkMerge(req, req.params.id, u.mergeUnder);
   checkLive({ ...ex.data(), ...u });
   if (Object.keys(u).length) await ref.update(u);
   res.json({ ok: true });
@@ -210,6 +228,8 @@ app.put(m + "/products/:id", auth, need("add", "stock", "cost", "tags"), h(async
 app.delete(m + "/products/:id", auth, ownerOnly, h(async (req, res) => {
   const ref = sub(req, "products").doc(req.params.id), ex = await ref.get();
   await Promise.all((ex.exists ? ex.data().photos || [] : []).map(i => sub(req, "photos").doc(i).delete()));
+  const kids = await sub(req, "products").where("mergeUnder", "==", req.params.id).get(); // they become normal listings again
+  await Promise.all(kids.docs.map(d => d.ref.update({ mergeUnder: "" })));
   await ref.delete(); res.json({ ok: true });
 }));
 

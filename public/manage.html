@@ -229,14 +229,14 @@ function vProd() {
     <div style="flex:1;min-width:0"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(p.name)}</b>
       ${owner() ? `<span class="row" style="gap:6px;flex-wrap:nowrap"><span class="mute">${p.active ? "Live" : "Off"}</span><label class="sw" title="${p.price > 0 ? "Show on the online store" : "Set a selling price first"}"><input type="checkbox" ${p.active ? "checked" : ""} ${p.price > 0 ? "" : "disabled"} onchange="setLive('${p.id}',this.checked)" aria-label="Live on website"><i></i></label></span>` : `<span class="bd ${p.active ? "ok" : "nt"}">${p.active ? "Live" : "Draft"}</span>`}</div>
       <div class="mute">${esc(p.supplier || "No supplier")}${p.expiry ? " · expires " + esc(p.expiry) : ""}</div>
-      <div style="margin-top:4px">${(p.tags || []).map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div></div></div>
+      <div style="margin-top:4px">${p.mergeUnder ? `<span class="chip">Merged under ${esc((P.find(x => x.id == p.mergeUnder) || {}).name || "…")}</span>` : P.some(x => x.mergeUnder == p.id) ? `<span class="chip">Main product · ${P.filter(x => x.mergeUnder == p.id).length} merged under it</span>` : ""}${[p.o1, p.o2].filter(Boolean).map(v => `<span class="chip">${esc(v)}</span>`).join("")}${(p.tags || []).map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div></div></div>
     <div class="row" style="margin:8px 0">${p.price > 0 ? `<span>Price <b>${inr(p.price)}</b></span>` : '<span class="bd wn">Needs a selling price</span>'}${can("cost") ? `<span class="mute">Cost ${inr(p.cost || 0)}</span>` : ""}<span class="bd ${low ? "wn" : "nt"}">Stock ${p.qty == null ? "—" : p.qty}</span><span class="mute">${np} photo${np == 1 ? "" : "s"}</span></div>
     <div class="acts" style="margin:0"><button class="btn g sm" onclick="openProd('${p.id}')">Edit</button>${owner() ? `<button class="btn g sm" onclick="delProd('${p.id}')">Delete</button>` : ""}</div></div>`;
   }).join("") || '<p class="mute">No products yet.' + (can("add") ? " Tap + to add your first one." : "") + "</p>";
 }
 const setLive = (id, on) => act(() => api(base + "/products/" + id, "PUT", { active: on }));
 function openProd(id) {
-  const p = P.find(x => x.id == id) || { active: owner(), lowAt: 5, tags: [], photos: [] }, dis = perm => can(perm) ? "" : "disabled", np = (p.photos || []).length;
+  const p = P.find(x => x.id == id) || { active: owner(), lowAt: 5, tags: [], photos: [] }, kids = !!id && P.some(x => x.mergeUnder == id), dis = perm => can(perm) ? "" : "disabled", np = (p.photos || []).length;
   modal(`<form onsubmit="saveProd(event,'${id || ""}')"><h2>${id ? "Edit product" : "Add product"}</h2>
   <label>Photos (up to 5)</label><div class="row" style="margin:6px 0 10px">${(p.photos || []).map(i => `<span class="ph2"><img class="th" src="/api/photo/${slug}/${i}" alt="">${can("add") ? `<button type="button" aria-label="Remove photo" onclick="delPhoto('${id}','${i}')">×</button>` : ""}</span>`).join("") || '<span class="mute">No photos yet</span>'}</div>
   ${can("add") && np < 5 ? '<input name="pf" type="file" accept="image/*" multiple>' : ""}
@@ -248,10 +248,17 @@ function openProd(id) {
   <label>Alert when stock is this low<input name="lowAt" type="number" min="0" ${dis("stock")} value="${esc(p.lowAt)}"></label>
   <label>Expiry date (optional)<input name="expiry" type="date" ${dis("stock")} value="${esc(p.expiry)}"></label>
   <label>Supplier<select name="supplier" ${dis("add")} style="width:100%;margin:4px 0 10px"><option value="">None</option>${S.map(s => `<option ${s.name == p.supplier ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label></div>
+  <label style="margin-top:4px"><b style="color:var(--ink)">Variants (optional)</b> · colour, size, flavour or weight</label>
+  <label>Merge under<select name="mergeUnder" ${dis("add")} ${kids ? "disabled" : ""} onchange="mergeChg(this)" style="width:100%;margin:4px 0 10px"><option value="">Not merged · shows as its own listing</option>${P.filter(x => !x.mergeUnder && x.id != id).map(x => `<option value="${x.id}" ${p.mergeUnder == x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>
+  ${kids ? '<p class="mute" style="margin:0 0 8px">Other products are merged under this one, so it is the main product.</p>' : ""}
+  <div class="fg"><label>Variant type<select name="kind" ${dis("add")} onchange="kindChg(this)" style="width:100%;margin:4px 0 10px"><option value="general">Colour and size</option><option value="food" ${p.kind == "food" ? "selected" : ""}>Flavour and weight</option></select></label><span></span>
+  <label><span id="l1">${p.kind == "food" ? "Flavour" : "Colour"}</span><input name="o1" ${dis("add")} value="${esc(p.o1)}"></label><label><span id="l2">${p.kind == "food" ? "Weight" : "Size"}</span><input name="o2" ${dis("add")} value="${esc(p.o2)}"></label></div>
   ${T.length ? `<label>Tags (optional)</label><div style="margin:6px 0 10px">${T.map(t => `<label class="tg"><input type="checkbox" name="tag" value="${esc(t.name)}" ${(p.tags || []).includes(t.name) ? "checked" : ""} ${dis("tags")}>${esc(t.name)}</label>`).join("")}</div>` : ""}
   <label class="ck"><input type="checkbox" name="active" ${p.active ? "checked" : ""} ${owner() ? "" : "disabled"}> Live on the online store${owner() ? "" : " (owner only)"}</label>
   <div class="acts"><button type="button" class="btn g" onclick="$('dlg').close()">Cancel</button><button class="btn" id="sv">Save product</button></div></form>`);
 }
+function kindChg(el) { const f = el.value == "food"; $("l1").textContent = f ? "Flavour" : "Colour"; $("l2").textContent = f ? "Weight" : "Size"; }
+function mergeChg(el) { const pp = P.find(x => x.id == el.value); if (pp) { const k = el.form.elements.kind; k.value = pp.kind == "food" ? "food" : "general"; kindChg(k); } }
 function shrink(file) {
   return new Promise((ok, no) => {
     const img = new Image(), u = URL.createObjectURL(file);
