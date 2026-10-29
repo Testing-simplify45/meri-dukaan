@@ -56,6 +56,21 @@ dialog{border:1px solid var(--line);border-radius:18px;background:var(--card);co
 .bn .fab{flex:none;width:56px;height:56px;border-radius:50%;background:var(--ac);color:var(--on);font-size:2rem;margin:-24px 6px 0;box-shadow:0 6px 16px rgba(106,61,232,.45);justify-content:center;padding:0}
 .login{max-width:380px;margin:60px auto}.err{color:var(--er);min-height:1.2em}
 :focus-visible{outline:3px solid #f5b700;outline-offset:2px}
+/* Mobile dashboard and order screens follow the compact reference layout. */
+.hero{position:relative;overflow:hidden;background:linear-gradient(125deg,#4d38df 0%,#6241e5 62%,#7548e9 100%);padding:20px 18px;margin:0 0 20px;box-shadow:0 8px 20px rgba(83,57,220,.2)}
+.hero:after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;right:-72px;bottom:-120px;background:rgba(255,255,255,.08);pointer-events:none}
+.hero .big{font-size:2rem;letter-spacing:.2px}.hero .two div{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.12)}
+#hd .row{gap:12px}.av{width:44px;height:44px;background:#e8e7ee;color:#4f5665}
+.sh{margin:22px 0 10px}.pc{flex-basis:116px;min-height:108px;text-align:left;padding:14px;border-radius:16px}.pc span{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--soft);font-size:1rem}.pc b{font-size:1.45rem;margin-top:3px}.pc em{white-space:nowrap}
+.at{border-radius:15px;padding:12px}.oc{border-radius:15px}.store{border-radius:18px}
+.ord-intro{display:flex;gap:8px;align-items:center;color:var(--mute);margin:10px 0 16px}.ord-tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border:1px solid var(--line);border-radius:16px;padding:5px;margin-bottom:14px}.ord-tabs button{border:0;border-radius:12px;background:transparent;color:var(--mute);font:inherit;font-weight:650;padding:11px 5px;cursor:pointer}.ord-tabs button.on{background:var(--ac);color:#fff;box-shadow:0 3px 8px rgba(106,61,232,.22)}
+.order-edit{padding:16px;border-radius:18px;margin-bottom:14px}.order-edit-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}.order-edit-head b{font-size:1.08rem}.order-edit-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.order-edit-row .item-name{min-width:0}.qty-ctrl{display:flex;align-items:center;gap:10px}.qty-ctrl button{width:38px;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;font-size:1.15rem;cursor:pointer}.qty-ctrl strong{min-width:18px;text-align:center}.order-total{display:flex;justify-content:space-between;align-items:center;padding:13px 0;font-size:1.08rem}.order-actions{display:grid;grid-template-columns:1fr 2fr;gap:10px}.order-actions .btn{min-height:48px}.order-actions .reject{color:#d42e54;background:var(--card);border:1px solid var(--line)}
+@media(min-width:801px){.two{grid-template-columns:1fr 1fr}.order-edit{padding:20px}.order-actions{grid-template-columns:160px 1fr}}
+@media(max-width:800px){
+ body{background:#f8f9fb}main{max-width:520px;width:100%;padding-top:18px}.top{margin-bottom:16px}#top{max-width:100%}
+ .bn{height:70px;padding-top:7px}.bn .fab{width:54px;height:54px;margin-top:-22px}
+ .ord-edit-wrap{padding-bottom:0}.ord-tabs button{font-size:.95rem}
+}
 @media(min-width:801px){.two{grid-template-columns:1fr 1fr}}
 @media(max-width:800px){
  #app{flex-direction:column}aside{display:none}.bn{display:flex}.dsk{display:none}
@@ -95,6 +110,7 @@ const SK = "login:" + slug; // remembered on this device, one entry per store
 const saved = (() => { try { return JSON.parse(localStorage.getItem(SK) || "{}"); } catch (e) { return {}; } })();
 let SN = "Your store", key = saved.key || sessionStorage.getItem("k") || "", tok = saved.tok || "", ME = { role: "owner", perms: {} };
 let P = [], O = [], S = [], T = [], U = [], tab = "dash", range = "30", flt = "all";
+let orderTab = "inprocess", orderDrafts = {};
 const owner = () => ME.role == "owner";
 const can = p => owner() || !!(ME.perms && ME.perms[p]);
 const PL = { add: "Add products and edit name, photos, supplier", stock: "Edit quantity and expiry", cost: "Edit purchase price", tags: "Assign tags to products", orders: "View and update orders" };
@@ -307,19 +323,36 @@ function seen(n) {
 }
 function vOrd() {
   const own = owner(), vis = own ? Object.keys(DL) : (ME.perms.orderView || []);
+  if (own) {
+    const tabs = [["inprocess", "In-Process", O.filter(o => o.status === "New").length], ["confirmed", "Confirmed", O.filter(o => o.status === "Packed").length], ["all", "All", O.length]];
+    const L = O.filter(o => orderTab === "all" || (orderTab === "inprocess" ? o.status === "New" : o.status === "Packed"));
+    const cards = L.map(o => orderTab === "inprocess" && o.status === "New" ? editOrderCard(o) : orderSummaryCard(o)).join("") || '<p class="mute" style="padding:18px 4px">No orders in this section yet.</p>';
+    return `<div class="ord-tabs">${tabs.map(([k,l,n]) => `<button class="${orderTab===k?'on':''}" onclick="orderTab='${k}';draw()">${l}${n ? ` <span class="bd" style="background:rgba(255,255,255,.2);color:inherit;padding:1px 7px">${n}</span>` : ""}</button>`).join("")}</div><div class="ord-intro">ⓘ <span>${orderTab === "inprocess" ? "New orders received. Edit item quantities, then confirm." : orderTab === "confirmed" ? "Confirmed orders are ready to dispatch." : "All orders, newest first."}</span></div><div class="ord-edit-wrap">${cards}</div>`;
+  }
   const L = O.filter(o => flt == "all" || (flt == "unpaid" ? o.status != "Cancelled" && due(o) > 0 : o.status == flt));
-  const opts = [["all", "All orders"], ...vis.map(s => [s, DL[s]])]; if (own) opts.push(["unpaid", "Unpaid"]);
-  return `<div class="card"><label>Show <select onchange="flt=this.value;draw()">${opts.map(([v, l]) => `<option value="${v}" ${flt == v ? "selected" : ""}>${l}</option>`).join("")}</select></label>${own ? "" : '<p class="mute" style="margin:8px 0 0">You see new and in-process orders. Once an order is on its way, only the owner sees it.</p>'}</div>` +
-  (L.map(o => { const ps = own ? pst(o) : "", n = esc(o.number), stOpts = own ? Object.keys(DL) : ["New", "Packed", "In transit", "Delivered"];
-    return `<div class="card" style="position:relative" onclick="seen('${n}')">${o.seen === false ? `<i class="dot big" id="d-${n}"></i>` : ""}
-    <div class="row"><b>#${n}</b><span class="mute">${dt(o)}</span>${own ? `<span class="bd ${PB[ps]}">${ps}</span>` : `<span class="bd ${DB[o.status]}">${DL[o.status]}</span>`}</div>
-    <div style="margin-top:4px">${esc(o.name)} · ${esc(o.phone)}</div><div class="mute">${esc(o.address)}</div>
-    <div style="margin:8px 0 6px">${o.lines.map(itemRow).join("")}</div>
-    ${own ? `<div><b>${inr(o.total)}</b> · paid ${inr(o.paid || 0)} · due ${inr(due(o))}</div>` : ""}
-    <div class="row" style="margin-top:10px;align-items:flex-end"><label style="flex:1;min-width:130px">Delivery<select style="width:100%" ${o.status == "Cancelled" ? "disabled" : ""} onchange="setStatus('${n}',this.value)">${stOpts.map(k => `<option value="${k}" ${o.status == k ? "selected" : ""}>${DL[k]}</option>`).join("")}</select></label>
-      ${own ? `<label style="flex:1;min-width:130px">Payment<select style="width:100%" ${o.status == "Cancelled" ? "disabled" : ""} onchange="setPay('${n}',this.value)">${PO.map(([v, l]) => `<option value="${v}" ${payNow(o) == v ? "selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}</div>
-    <div class="acts"><button class="btn sm" onclick="viewOrder('${n}')">View order</button>${own ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">Send invoice</a>${o.status != "Cancelled" && due(o) > 0 ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}">Remind</a>` : ""}` : ""}</div></div>`; }).join("") || '<p class="mute">No orders here yet.</p>');
+  const opts = [["all", "All orders"], ...vis.map(s => [s, DL[s]])];
+  return `<div class="card"><label>Show <select onchange="flt=this.value;draw()">${opts.map(([v, l]) => `<option value="${v}" ${flt == v ? "selected" : ""}>${l}</option>`).join("")}</select></label><p class="mute" style="margin:8px 0 0">You see orders assigned to your role. Update delivery status as orders move along.</p></div>` + L.map(o => orderSummaryCard(o)).join("") || '<p class="mute">No orders here yet.</p>';
 }
+function orderSummaryCard(o) {
+  const own = owner(), n = esc(o.number), ps = own ? pst(o) : "", stOpts = own ? Object.keys(DL) : ["New", "Packed", "In transit", "Delivered"];
+  return `<div class="card" style="position:relative" onclick="seen('${n}')">${o.seen === false ? `<i class="dot big" id="d-${n}"></i>` : ""}<div class="row"><b>#${n}</b><span class="mute">${dt(o)}</span>${own ? `<span class="bd ${PB[ps]}">${ps}</span>` : `<span class="bd ${DB[o.status]}">${DL[o.status]}</span>`}</div><div style="margin-top:4px">${esc(o.name)} · ${esc(o.phone)}</div><div class="mute">${esc(o.address)}</div><div style="margin:8px 0 6px">${o.lines.map(itemRow).join("")}</div>${own ? `<div><b>${inr(o.total)}</b> · paid ${inr(o.paid || 0)} · due ${inr(due(o))}</div>` : ""}<div class="row" style="margin-top:10px;align-items:flex-end"><label style="flex:1;min-width:130px">Delivery<select style="width:100%" ${o.status == "Cancelled" ? "disabled" : ""} onchange="setStatus('${n}',this.value)">${stOpts.map(k => `<option value="${k}" ${o.status == k ? "selected" : ""}>${DL[k]}</option>`).join("")}</select></label>${own ? `<label style="flex:1;min-width:130px">Payment<select style="width:100%" ${o.status == "Cancelled" ? "disabled" : ""} onchange="setPay('${n}',this.value)">${PO.map(([v, l]) => `<option value="${v}" ${payNow(o) == v ? "selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}</div><div class="acts"><button class="btn sm" onclick="viewOrder('${n}')">View order</button>${own ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">Send invoice</a>${o.status != "Cancelled" && due(o) > 0 ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}">Remind</a>` : ""}` : ""}</div></div>`;
+}
+function editOrderCard(o) {
+  const n = esc(o.number), qs = orderDrafts[o.number] || Object.fromEntries(o.lines.map((l,i)=>[i,l.qty]));
+  orderDrafts[o.number] = qs;
+  const total = o.lines.reduce((sum,l,i)=>sum + l.price * Math.max(0, Number(qs[i] ?? l.qty)), 0);
+  return `<article class="card order-edit" onclick="seen('${n}')"><div class="order-edit-head"><div><b>${esc(o.name)}</b><div class="mute">#${n} · ${dt(o)} · ${esc(o.phone)}</div></div><span class="bd in">${o.channel === "online" ? "🌐 Online" : "🏬 At store"}</span></div>${o.lines.map((l,i)=>`<div class="order-edit-row"><div class="item-name"><div>${esc(l.name)}</div><div class="mute">${inr(l.price)} each</div></div><div class="qty-ctrl"><button onclick="event.stopPropagation();changeOrderQty('${n}',${i},-1)" aria-label="Decrease quantity">−</button><strong>${Number(qs[i] ?? l.qty)}</strong><button onclick="event.stopPropagation();changeOrderQty('${n}',${i},1)" aria-label="Increase quantity">+</button></div></div>`).join("")}<div class="order-total"><span class="mute">Total</span><strong>${inr(total)}</strong></div><div class="order-actions"><button class="btn reject" onclick="event.stopPropagation();rejectOrder('${n}')">Reject</button><button class="btn" onclick="event.stopPropagation();confirmOrder('${n}')">✓ &nbsp; Confirm order</button></div></article>`;
+}
+function changeOrderQty(n,i,delta) { const o=O.find(x=>x.number===n); if(!orderDrafts[n]) orderDrafts[n]=Object.fromEntries(o.lines.map((l,j)=>[j,l.qty])); const min=delta<0?0:0; orderDrafts[n][i]=Math.max(min,Number(orderDrafts[n][i]??o.lines[i].qty)+delta); draw(); }
+async function confirmOrder(n) {
+  const o=O.find(x=>x.number===n), qs=orderDrafts[n]||Object.fromEntries(o.lines.map((l,i)=>[i,l.qty]));
+  const lines=o.lines.map((l,i)=>({id:l.id,qty:Number(qs[i]??l.qty)})).filter(l=>l.qty>0);
+  if (!lines.length) return alert("Set at least one item quantity before confirming.");
+  try { await api(base+"/orders/"+n+"/items","PUT",{lines}); await api(base+"/orders/"+n,"PATCH",{status:"Packed"}); delete orderDrafts[n]; await load(); orderTab="confirmed"; draw(); }
+  catch(e) { alert(e.message); }
+}
+function rejectOrder(n) { if(confirm("Reject this order? Items will be returned to stock.")) act(()=>api(base+"/orders/"+n,"PATCH",{status:"Cancelled"})); }
+
 function viewOrder(n) {
   const o = O.find(x => x.number == n), own = owner(); seen(n);
   modal(`<div><div style="text-align:center"><b style="font-size:1.15rem">${esc(SN)}</b><div class="mute">${own ? "Bill" : "Order slip"}</div></div>
