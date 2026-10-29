@@ -317,6 +317,43 @@ app.get(m + "/orders", auth, need("orders"), h(async (req, res) => {
     lines: (o.lines || []).map(l => ({ id: l.id, name: l.name, qty: l.qty, photo: l.photo || "" })),
   })));
 }));
+// Adjust quantities on a new order before confirmation; reconcile stock and totals atomically.
+app.put(m + "/orders/:number/items", auth, ownerOnly, h(async (req, res) => {
+  const input = req.body && req.body.lines;
+  if (!Array.isArray(input) || !input.length || input.length > 50) throw new Bad("Keep at least one item on the order.");
+  const wanted = new Map();
+  for (const line of input) {
+    const id = String(line.id || ""), qty = Number(line.qty);
+    if (!/^[A-Za-z0-9]{1,40}$/.test(id) || !Number.isInteger(qty) || qty < 1 || qty > 20 || wanted.has(id)) throw new Bad("One or more quantities are invalid.");
+    wanted.set(id, qty);
+  }
+  const ref = sub(req, "orders").doc(req.params.number);
+  await db.runTransaction(async t => {
+    const orderSnap = await t.get(ref);
+    if (!orderSnap.exists) throw new Bad("Order not found.");
+    const order = orderSnap.data();
+    if (order.status !== "New") throw new Bad("Only new orders can be edited.");
+    const prior = order.lines || [];
+    if ([...wanted.keys()].some(id => !prior.some(line => line.id === id))) throw new Bad("You can only change quantities for items already on this order.");
+    const productRefs = [...new Set(prior.map(line => line.id).filter(Boolean))].map(id => sub(req, "products").doc(id));
+    const products = await Promise.all(productRefs.map(r => t.get(r)));
+    const pmap = new Map(products.map(p => [p.id, p]));
+    const updated = prior.filter(line => wanted.has(line.id)).map(line => ({ ...line, qty: wanted.get(line.id) }));
+    for (const line of updated) {
+      const p = pmap.get(line.id);
+      if (!p || !p.exists) throw new Bad("A product on this order no longer exists.");
+    }
+    const originalById = new Map(prior.map(line => [line.id, line]));
+    const nextTotal = updated.reduce((sum, line) => sum + Number(line.price || 0) * line.qty, 0);
+    const nextCost = updated.reduce((sum, line) => sum + Number(line.cost || 0) * line.qty, 0);
+    for (const line of updated) {
+      const product = pmap.get(line.id), oldQty = Number(originalById.get(line.id).qty || 0), diff = oldQty - line.qty;
+      if (product.data().qty != null && diff) t.update(product.ref, { qty: Math.max(0, Number(product.data().qty) + diff) });
+    }
+    t.update(ref, { lines: updated, total: nextTotal, cost: nextCost, seen: true });
+  });
+  res.json({ ok: true });
+}));
 app.post(m + "/orders/:number/seen", auth, need("orders"), h(async (req, res) => {
   const ref = sub(req, "orders").doc(req.params.number), o = await ref.get();
   if (!o.exists || (req.who.role !== "owner" && !req.who.perms.orderView.includes(o.data().status))) throw new Bad("Order not found.");
