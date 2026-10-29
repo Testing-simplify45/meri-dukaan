@@ -39,8 +39,9 @@ h1{margin:0;font-size:1.35rem}h2{font-size:1rem;margin:0 0 10px}.mute{color:var(
 .bar{height:8px;border-radius:99px;background:var(--bg);overflow:hidden;margin:4px 0 10px}.bar i{display:block;height:100%;background:var(--ac)}
 .stk{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--bg);margin:8px 0}.stk i{display:block;height:100%}
 .chip{display:inline-block;background:var(--bg);border-radius:999px;padding:3px 11px;font-size:.78rem;margin:0 6px 6px 0;color:var(--mute)}
-.store{background:#0f1224;color:#fff;border-radius:22px;padding:16px;margin-bottom:14px}.store .st{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.store .st div{background:rgba(255,255,255,.1);border-radius:14px;padding:12px 6px;text-align:center;font-size:.8rem}.store .st b{display:block;font-size:1.5rem}.store a{color:#cbb8ff;font-weight:600;text-decoration:none}
+.store{background:#11162b;color:#fff;border-radius:18px;padding:16px;margin:18px 0 14px}.store .st{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.store .st div{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.04);border-radius:13px;padding:10px 6px;text-align:center;font-size:.8rem;color:#c7ccdc}.store .st b{display:block;font-size:1.25rem;color:#fff}.store a{color:#cbb8ff;font-weight:600;text-decoration:none}
+.store .store-link-label{display:block;color:#aab2c7;font-size:.78rem;margin:8px 0 5px}.store .linkbar{display:flex;align-items:center;gap:8px;min-width:0;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:5px 6px 5px 10px}.store .linkbar .url{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f3f4fa;font-size:.88rem}.store .copybtn{border:0;border-radius:9px;background:#fff;color:#1b2032;font:inherit;font-size:.8rem;font-weight:700;padding:8px 10px;white-space:nowrap;cursor:pointer}.store .store-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.store .store-actions button{border:0;border-radius:11px;padding:10px 8px;font:inherit;font-weight:700;cursor:pointer}.store .sharebtn{background:#0eaf83;color:#fff}.store .qrbtn{background:#252b42;color:#fff}
 .two{display:grid;grid-template-columns:1fr;gap:0 12px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
 .seg button{border:0;background:none;color:var(--mute);font:inherit;font-weight:600;padding:7px 12px;cursor:pointer}.seg button.on{background:var(--soft);color:var(--ac)}
@@ -196,6 +197,20 @@ function openMore() {
   <a class="btn g" href="/s/${esc(slug)}" target="_blank">🛍️ Open my online store</a><button class="btn g" onclick="navigator.clipboard.writeText(location.origin+'/s/${esc(slug)}');this.textContent='Link copied'">🔗 Copy store link</button>` : ""}
   <button class="btn g" onclick="logout()">Log out</button><button class="btn" onclick="$('dlg').close()">Close</button></div>`);
 }
+const storeUrl = () => location.origin + "/s/" + encodeURIComponent(slug || "");
+async function copyStoreLink() {
+  try { await navigator.clipboard.writeText(storeUrl()); alert("Store link copied."); }
+  catch (e) { prompt("Copy your store link:", storeUrl()); }
+}
+async function shareStoreLink() {
+  const url = storeUrl();
+  try { if (navigator.share) await navigator.share({ title: SN + " online store", url }); else { await navigator.clipboard.writeText(url); alert("Store link copied. You can paste it into a message."); } }
+  catch (e) { if (e.name !== "AbortError") { try { await navigator.clipboard.writeText(url); alert("Store link copied."); } catch (x) { prompt("Share your store link:", url); } } }
+}
+function showStoreQr() {
+  const url = storeUrl(), qr = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=12&data=" + encodeURIComponent(url);
+  modal(`<div style="text-align:center"><h2>Store QR code</h2><p class="mute">Scan to open your online store</p><img src="${esc(qr)}" alt="QR code for ${esc(SN)} online store" width="240" height="240" style="max-width:100%;border-radius:12px;background:#fff;padding:8px"><p class="mute" style="overflow-wrap:anywhere">${esc(url)}</p><div class="acts" style="justify-content:center"><button class="btn g" onclick="$('dlg').close()">Close</button><button class="btn" onclick="copyStoreLink()">Copy store link</button></div></div>`);
+}
 
 // ----- home -----
 function vDash() {
@@ -215,26 +230,16 @@ function vDash() {
   const recent = `<div class="sh"><h2>Recent orders</h2><a href="#" onclick="showOrders('all');return false" style="color:var(--ac);font-weight:600;text-decoration:none">View all</a></div>` +
     (O.slice(0, 5).map(o => `<div class="oc" onclick="showOrders('all')"><div class="row" style="justify-content:space-between"><b>${esc(o.name)}</b>${owner() ? `<b>${inr(o.total)}</b>` : ""}</div><div class="mute">#${esc(o.number)}</div><div class="row" style="margin-top:6px"><span class="bd ${DB[o.status]}">${DL[o.status]}</span>${owner() ? `<span class="bd ${PB[pst(o)]}">${pst(o)}</span>` : ""}</div></div>`).join("") || '<div class="card mute">No orders yet. Share your store link to get the first one.</div>');
   const live = P.filter(p => p.active && (p.qty == null || p.qty > 0)).length, dr = P.filter(p => !p.active).length, oos = P.filter(p => p.active && p.qty === 0).length;
-  const shop = `<div class="store"><div class="row" style="justify-content:space-between"><b>🛍️ Online store</b>${owner() ? `<a href="/s/${esc(slug)}" target="_blank">Open ↗</a>` : ""}</div><div class="st">${[["Live", live], ["Drafts", dr], ["Out of stock", oos]].map(([l, v]) => `<div><b>${v}</b>${l}</div>`).join("")}</div></div>`;
+  const shop = `<section class="store"><div class="row" style="justify-content:space-between"><b>▣ &nbsp;Online store</b>${owner() ? `<a href="/s/${esc(slug)}" target="_blank" rel="noopener">Open ↗</a>` : ""}</div><div class="st">${[["Live", live], ["Drafts", dr], ["Out of stock", oos]].map(([l, v]) => `<div><b>${v}</b>${l}</div>`).join("")}</div><label class="store-link-label">Your store link</label><div class="linkbar"><span class="url">🔗 &nbsp;${esc(storeUrl())}</span><button class="copybtn" onclick="copyStoreLink()">▣ Copy</button></div><div class="store-actions"><button class="sharebtn" onclick="shareStoreLink()">◉ &nbsp;Share</button><button class="qrbtn" onclick="showStoreQr()">▦ &nbsp;QR code</button></div></section>`;
   if (!owner()) return (can("add") ? '<div class="qa" style="grid-template-columns:repeat(2,1fr)"><button onclick="openProd()"><span>＋</span>Add product</button><button onclick="go(\'prod\')"><span>📦</span>Products</button></div>' : "") + att + (can("orders") ? pipe + recent : "") + shop;
 
   const os = O.filter(o => o.status != "Cancelled" && inR(o)), pv = O.filter(o => o.status != "Cancelled" && inP(o));
-  const rev = sum(os, o => o.total), coll = sum(os, o => o.paid || 0), prof = sum(os, o => o.total - (o.cost || 0)), out = rev - coll;
-  const od = sum(os.filter(o => age(o) > 7), due), pend = out - od, pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+  const rev = sum(os, o => o.total), coll = sum(os, o => o.paid || 0), prof = sum(os, o => o.total - (o.cost || 0));
   const before = sum(pv, o => o.total), gw = before ? Math.round((rev - before) * 100 / before) : null;
-  const Tp = {}; os.forEach(o => o.lines.forEach(l => Tp[l.name] = (Tp[l.name] || 0) + l.price * l.qty));
-  const top = Object.entries(Tp).sort((a, b) => b[1] - a[1]).slice(0, 4), mx = top.length ? top[0][1] : 1;
-  const M = {}; os.forEach(o => (o.payments || []).forEach(p => M[p.method] = (M[p.method] || 0) + p.amount));
   const lbl = { "1": "today", "30": "30 days", "365": "this year" }[range];
   return `<div class="hero">${gw == null ? "" : `<span class="gw">${gw >= 0 ? "▲" : "▼"} ${Math.abs(gw)}%</span>`}<small>Sales revenue · ${lbl}</small><div class="big">${inr(rev)}</div>
     <div class="two"><div><small>Profit</small><b>${inr(prof)}</b></div><div><small>Collected</small><b>${inr(coll)}</b></div></div></div>
-  <div class="qa"><button onclick="openProd()"><span>＋</span>Product</button><button onclick="showOrders('Packed')"><span>🚚</span>Dispatch</button><button onclick="showOrders('unpaid')"><span>₹</span>Unpaid</button><button onclick="go('usr')"><span>🔑</span>Staff</button></div>
-  <div class="due"><div class="ic wn">⌛</div><div class="grow"><small class="mute">Outstanding</small><br><b>${inr(out)}</b><div class="mute" style="color:var(--er)">${inr(od)} overdue</div></div><button class="btn dk" onclick="showOrders('unpaid')">Remind</button></div>
-  ${pipe}${att}${recent}
-  <div class="two"><div><div class="sh"><h2>Payment tracking</h2></div><div class="card"><div class="stk"><i style="width:${pct(coll, rev)}%;background:var(--ok)"></i><i style="width:${pct(pend, rev)}%;background:#e0a800"></i><i style="width:${pct(od, rev)}%;background:var(--er)"></i></div>
-    <div class="row mute" style="justify-content:space-between"><span>● Collected<br><b style="color:var(--ink)">${inr(coll)}</b></span><span>● Pending<br><b style="color:var(--ink)">${inr(pend)}</b></span><span>● Overdue<br><b style="color:var(--ink)">${inr(od)}</b></span></div>
-    <div style="margin-top:10px">${Object.entries(M).map(([k, v]) => `<span class="chip">${k} ${pct(v, coll)}%</span>`).join("") || '<span class="mute">No payments recorded yet.</span>'}</div></div></div>
-  <div><div class="sh"><h2>Top products</h2></div><div class="card">${top.map(([n, v]) => `<div class="row" style="justify-content:space-between"><span>${esc(n)}</span><span class="mute">${inr(v)}</span></div><div class="bar"><i style="width:${Math.round(v * 100 / mx)}%"></i></div>`).join("") || '<span class="mute">No sales in this period.</span>'}</div></div></div>` + shop;
+  ${pipe}${att}${recent}` + shop;
 }
 
 // ----- products -----
