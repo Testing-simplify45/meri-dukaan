@@ -70,7 +70,7 @@ nav button{position:relative}nav button .dot{top:11px;right:12px}
 .sw{position:relative;display:inline-block;width:42px;height:24px;flex:none;margin:0}.sw input{opacity:0;position:absolute;inset:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
 .sw i{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:.15s}.sw i:before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .sw input:checked+i{background:var(--ok)}.sw input:checked+i:before{left:21px}.sw input:disabled{cursor:not-allowed}.sw input:disabled+i{opacity:.45}
-.th{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--bg);flex:none;display:grid;place-items:center;font-size:1.5rem}
+.th{width:78px;height:52px;border-radius:12px;object-fit:cover;background:var(--bg);flex:none;display:grid;place-items:center;font-size:1.5rem}
 .ph2{position:relative;display:inline-block}.ph2 button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:var(--er);color:#fff;cursor:pointer;line-height:1;padding:0;font-size:1rem}
 .tg{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;margin:0 6px 6px 0;color:var(--ink);font-size:.88rem}.tg input{width:auto;margin:0}
 input:disabled,select:disabled{opacity:.6}
@@ -238,7 +238,7 @@ const setLive = (id, on) => act(() => api(base + "/products/" + id, "PUT", { act
 function openProd(id) {
   const p = P.find(x => x.id == id) || { active: owner(), lowAt: 5, tags: [], photos: [] }, kids = !!id && P.some(x => x.mergeUnder == id), dis = perm => can(perm) ? "" : "disabled", np = (p.photos || []).length;
   modal(`<form onsubmit="saveProd(event,'${id || ""}')"><h2>${id ? "Edit product" : "Add product"}</h2>
-  <label>Photos (up to 5)</label><div class="row" style="margin:6px 0 10px">${(p.photos || []).map(i => `<span class="ph2"><img class="th" src="/api/photo/${slug}/${i}" alt="">${can("add") ? `<button type="button" aria-label="Remove photo" onclick="delPhoto('${id}','${i}')">×</button>` : ""}</span>`).join("") || '<span class="mute">No photos yet</span>'}</div>
+  <label>Photos (up to 5) · saved at 1536 × 1024, landscape</label><div class="row" style="margin:6px 0 10px">${(p.photos || []).map(i => `<span class="ph2"><img class="th" src="/api/photo/${slug}/${i}" alt="">${can("add") ? `<button type="button" aria-label="Remove photo" onclick="delPhoto('${id}','${i}')">×</button>` : ""}</span>`).join("") || '<span class="mute">No photos yet</span>'}</div>
   ${can("add") && np < 5 ? '<input name="pf" type="file" accept="image/*" multiple>' : ""}
   <label>Name<input name="name" required ${dis("add")} value="${esc(p.name)}"></label>
   <label>Description<input name="description" ${dis("add")} value="${esc(p.description)}"></label>
@@ -259,10 +259,19 @@ function openProd(id) {
 }
 function kindChg(el) { const f = el.value == "food"; $("l1").textContent = f ? "Flavour" : "Colour"; $("l2").textContent = f ? "Weight" : "Size"; }
 function mergeChg(el) { const pp = P.find(x => x.id == el.value); if (pp) { const k = el.form.elements.kind; k.value = pp.kind == "food" ? "food" : "general"; kindChg(k); } }
+const PW = 1536, PH = 1024; // every product photo is saved at this size (3:2, landscape)
 function shrink(file) {
   return new Promise((ok, no) => {
     const img = new Image(), u = URL.createObjectURL(file);
-    img.onload = () => { const s = Math.min(1, 900 / Math.max(img.width, img.height)), c = document.createElement("canvas"); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); ok(c.toDataURL("image/jpeg", .72)); };
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = PW; c.height = PH;
+      const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height, k = Math.max(PW / iw, PH / ih), w = iw * k, h = ih * k; // fill the frame, trim any extra evenly
+      const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, PW, PH); x.drawImage(img, (PW - w) / 2, (PH - h) / 2, w, h);
+      URL.revokeObjectURL(u);
+      let q = .85, d = c.toDataURL("image/jpeg", q);
+      while (d.length * .75 > 450 * 1024 && q > .4) { q -= .1; d = c.toDataURL("image/jpeg", q); } // keep each photo comfortably small
+      d.length * .75 > 480 * 1024 ? no(new Error("That photo is too detailed to shrink enough. Please try another one.")) : ok(d);
+    };
     img.onerror = () => no(new Error("Could not read that photo.")); img.src = u;
   });
 }
@@ -285,7 +294,7 @@ function delProd(id) { if (confirm("Delete this product and its photos? Past ord
 
 // ----- orders -----
 const ph = l => { const id = l.photo || ((P.find(p => p.id == l.id) || {}).photos || [])[0]; return id ? `/api/photo/${slug}/${id}` : ""; };
-const thumb = (l, n) => ph(l) ? `<img src="${esc(ph(l))}" alt="" style="width:${n}px;height:${n}px;border-radius:10px;object-fit:cover;flex:none">` : `<div style="width:${n}px;height:${n}px;border-radius:10px;background:var(--bg);display:grid;place-items:center;flex:none">📦</div>`;
+const thumb = (l, n) => ph(l) ? `<img src="${esc(ph(l))}" alt="" style="width:${n * 1.5}px;height:${n}px;border-radius:10px;object-fit:cover;flex:none">` : `<div style="width:${n * 1.5}px;height:${n}px;border-radius:10px;background:var(--bg);display:grid;place-items:center;flex:none">📦</div>`;
 const itemRow = l => `<div class="row" style="flex-wrap:nowrap;justify-content:space-between;padding:7px 0;border-top:1px solid var(--line)"><b style="flex:1;min-width:0">${esc(l.name)}</b><span class="mute" style="white-space:nowrap">× ${l.qty}</span>${thumb(l, 44)}</div>`;
 const phoneOf = o => { let n = String(o.phone).replace(/\D/g, ""); if (n.length == 10) n = "91" + n; return n; };
 const invLink = o => `${location.origin}/invoice/${slug}/${o.number}?k=${o.invKey}`;
