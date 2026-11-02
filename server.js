@@ -26,6 +26,7 @@ const same = (a, b) => { a = Buffer.from(String(a || "")); b = Buffer.from(Strin
 const lname = d => { const o = [d.o1, d.o2].filter(Boolean); return o.length && !o.every(v => d.name.toLowerCase().includes(String(v).toLowerCase())) ? `${d.name} (${o.join(", ")})` : d.name; };
 const prefixOf = name => { const w = String(name || "").replace(/[^A-Za-z0-9 ]/g, "").trim().split(/\s+/).filter(Boolean); const p = (w.length > 1 ? w.slice(0, 3).map(x => x[0]).join("") : (w[0] || "").slice(0, 2)).toUpperCase(); return p.length >= 2 ? p : "OR"; };
 const RATES = [0, 5, 12, 18, 28], PAY_METHODS = ["UPI", "Cash", "Card", "Bank"]; // GST rates and the ways a counter sale can be paid
+const stockEntry = (req, p, delta, after, reason, note) => ({ product: p.id, name: p.name || "", sku: p.sku || "", delta, after, reason, note: note || "", by: (req.who && req.who.name) || "Customer", at: stamp() });
 const num = (v, d) => (v === "" || v == null ? d : Number(v));
 const store = slug => db.collection("stores").doc(slug);
 const sub = (req, name) => store(req.params.slug).collection(name);
@@ -114,7 +115,7 @@ app.post("/api/store/:slug/orders", rateLimit({ windowMs: 10 * 60 * 1000, limit:
       lines.push({ id: p.id, name: lname(d), price: d.price, cost: d.cost || 0, qty: q, photo: (d.photos || [])[0] || "" });
       total += d.price * q; cost += (d.cost || 0) * q; // prices always come from the database
     });
-    snaps.forEach((p, i) => { if (p.data().qty != null) t.update(p.ref, { qty: p.data().qty - want[ids[i]] }); });
+    snaps.forEach((p, i) => { if (p.data().qty != null) { const q = want[ids[i]], after = p.data().qty - q; t.update(p.ref, { qty: after }); t.set(sub(req, "stockLog").doc(), stockEntry(req, { id: p.id, name: p.data().name, sku: p.data().sku }, -q, after, "Order " + number)); } });
     const o = { number, ...cust, lines, total, cost, status: "New", paid: 0, payments: [], seen: false, channel: "online" }; // channel "store" is for orders you enter yourself
     t.update(ref, { orderSeq: seq });
     t.set(ref.collection("orders").doc(number), { ...o, createdAt: stamp() });
@@ -246,7 +247,7 @@ app.post(m + "/invoices", auth, ownerOnly, h(async (req, res) => {
     if (b.pay.status === "paid") paid = total; else if (b.pay.status === "partial") { if (!(b.pay.amount > 0 && b.pay.amount < total)) throw new Bad("For a part payment, enter an amount below the total."); paid = b.pay.amount; }
     if (paid > 0) payments = [{ amount: paid, method: b.pay.method, at: new Date().toISOString() }];
     const seq = (st.data().orderSeq || 1000) + 1, number = prefixOf(st.data().name) + "-" + seq;
-    snaps.forEach((p, i) => { if (p.data().qty != null) t.update(p.ref, { qty: p.data().qty - want.get(ids[i]) }); });
+    snaps.forEach((p, i) => { if (p.data().qty != null) { const q = want.get(ids[i]), after = p.data().qty - q; t.update(p.ref, { qty: after }); t.set(sub(req, "stockLog").doc(), stockEntry(req, { id: p.id, name: p.data().name, sku: p.data().sku }, -q, after, "Invoice " + number)); } });
     t.update(ref, { orderSeq: seq });
     const o = { number, name: b.name || (b.mode === "store" ? "Walk-in customer" : ""), phone: b.phone, address: b.mode === "online" ? b.address : "", lines, subtotal, discount: b.discount, gstRate: b.gst, gst, total, cost, notes: b.notes,
       status: b.mode === "store" ? "Delivered" : "Packed", paid, payments, seen: true, channel: b.mode }; // a counter sale is already handed over; an online one is ready to dispatch
@@ -320,7 +321,9 @@ app.post(m + "/products", auth, need("add"), h(async (req, res) => {
   }
   const doc = { description: "", supplier: "", cost: 0, qty: 0, lowAt: 5, expiry: "", tags: [], photos: [], price: 0, active: false, ...u, createdAt: stamp() };
   checkLive(doc);
-  const r = await sub(req, "products").add(doc); res.json({ id: r.id });
+  const r = await sub(req, "products").add(doc);
+  if (doc.qty > 0) await sub(req, "stockLog").add(stockEntry(req, { id: r.id, name: doc.name, sku: doc.sku }, doc.qty, doc.qty, "Opening stock"));
+  res.json({ id: r.id });
 }));
 app.put(m + "/products/:id", auth, need("add", "stock", "cost", "tags"), h(async (req, res) => {
   const ref = sub(req, "products").doc(req.params.id), ex = await ref.get();
@@ -329,6 +332,8 @@ app.put(m + "/products/:id", auth, need("add", "stock", "cost", "tags"), h(async
   await checkMerge(req, req.params.id, u.mergeUnder);
   checkLive({ ...ex.data(), ...u });
   if (Object.keys(u).length) await ref.update(u);
+  const oldQ = ex.data().qty == null ? 0 : ex.data().qty;
+  if (u.qty !== undefined && u.qty !== oldQ) await sub(req, "stockLog").add(stockEntry(req, { id: ex.id, name: u.name || ex.data().name, sku: u.sku || ex.data().sku }, u.qty - oldQ, u.qty, clean(req.body.stockReason, 40) || "Stock changed", clean(req.body.stockNote, 100)));
   res.json({ ok: true });
 }));
 app.delete(m + "/products/:id", auth, ownerOnly, h(async (req, res) => {
@@ -450,7 +455,8 @@ app.put(m + "/orders/:number/items", auth, ownerOnly, h(async (req, res) => {
       const p = pmap.get(line.id), diff = Number(line.qty || 0) - (wanted.get(line.id) || 0);
       if (!p || !p.exists || p.data().qty == null || !diff) continue;
       if (diff < 0 && p.data().qty < -diff) throw new Bad(`Only ${p.data().qty} more of ${line.name} in stock.`);
-      t.update(p.ref, { qty: Number(p.data().qty) + diff });
+      const after = Number(p.data().qty) + diff; t.update(p.ref, { qty: after });
+      t.set(sub(req, "stockLog").doc(), stockEntry(req, { id: p.id, name: p.data().name, sku: p.data().sku }, diff, after, "Order " + req.params.number + " edited"));
     }
     t.update(ref, { lines: updated, total: updated.reduce((n, l) => n + Number(l.price || 0) * l.qty, 0), cost: updated.reduce((n, l) => n + Number(l.cost || 0) * l.qty, 0), seen: true });
   });
@@ -475,9 +481,27 @@ app.patch(m + "/orders/:number", auth, need("orders"), h(async (req, res) => {
     if (st === "Cancelled") { // put the items back into stock
       const ls = (d.lines || []).filter(l => l.id);
       const ps = await Promise.all(ls.map(l => t.get(sub(req, "products").doc(l.id))));
-      ps.forEach((p, i) => { if (p.exists && p.data().qty != null) t.update(p.ref, { qty: p.data().qty + ls[i].qty }); });
+      ps.forEach((p, i) => { if (p.exists && p.data().qty != null) { const after = p.data().qty + ls[i].qty; t.update(p.ref, { qty: after }); t.set(sub(req, "stockLog").doc(), stockEntry(req, { id: p.id, name: p.data().name, sku: p.data().sku }, ls[i].qty, after, "Order " + req.params.number + " cancelled")); } });
     }
     t.update(oref, { status: st, seen: true });
+  });
+  res.json({ ok: true });
+}));
+app.get(m + "/stock-log", auth, need("stock"), h(async (req, res) => {
+  const s = await sub(req, "stockLog").orderBy("at", "desc").limit(300).get();
+  res.json(s.docs.map(d => { const x = d.data(); return { id: d.id, ...x, at: x.at ? x.at.toDate().toISOString() : null }; }));
+}));
+// delete an order or invoice made by mistake (owner only). A copy is kept in "trash" so nothing is lost for good.
+app.delete(m + "/orders/:number", auth, ownerOnly, h(async (req, res) => {
+  const oref = sub(req, "orders").doc(req.params.number), restock = req.query.restock !== "0";
+  await db.runTransaction(async t => {
+    const o = await t.get(oref);
+    if (!o.exists) throw new Bad("Order not found.");
+    const d = o.data(), back = restock && d.status !== "Cancelled", ls = back ? (d.lines || []).filter(l => l.id) : [];
+    const ps = await Promise.all(ls.map(l => t.get(sub(req, "products").doc(l.id))));
+    ps.forEach((p, i) => { if (p.exists && p.data().qty != null) { const after = p.data().qty + ls[i].qty; t.update(p.ref, { qty: after }); t.set(sub(req, "stockLog").doc(), stockEntry(req, { id: p.id, name: p.data().name, sku: p.data().sku }, ls[i].qty, after, "Order " + req.params.number + " deleted")); } });
+    t.set(sub(req, "trash").doc(req.params.number), { ...d, deletedAt: stamp(), deletedBy: req.who.name, stockReturned: back });
+    t.delete(oref);
   });
   res.json({ ok: true });
 }));

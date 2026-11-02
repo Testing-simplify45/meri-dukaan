@@ -7,7 +7,7 @@
 <style>
 :root{color-scheme:light dark;--bg:#f8f9fb;--card:#fff;--ink:#1a2236;--mute:#667085;--line:#e8ebf2;--ac:#4f46e5;--ac2:#6d4be8;--on:#fff;--soft:#eef0ff;--ok:#0f8a5f;--okb:#e5f7ef;--wn:#a15c00;--wnb:#fff4dc;--er:#d12b3f;--erb:#fdebee;--in:#1d6fd1;--inb:#e8f2ff;--pk:#d6336c;--pkb:#ffeaf3;--dk:#11162b}
 @media(prefers-color-scheme:dark){:root{--bg:#0e1220;--card:#171c2e;--ink:#eceffa;--mute:#98a2ba;--line:#2a3150;--ac:#8c86ff;--ac2:#9a82ff;--on:#12103a;--soft:#241f55;--ok:#5fd6a6;--okb:#12362a;--wn:#f1c45b;--wnb:#3a2f10;--er:#ff9aa6;--erb:#43191f;--in:#8fbaff;--inb:#16294a;--pk:#ff8fb8;--pkb:#43192c;--dk:#0a0d1c}}
-*{box-sizing:border-box}[hidden]{display:none!important}
+*{box-sizing:border-box;touch-action:manipulation}[hidden]{display:none!important}html,body{max-width:100%;overflow-x:hidden}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Inter,sans-serif;padding-top:env(safe-area-inset-top,0px);-webkit-tap-highlight-color:transparent}
 svg.i{width:22px;height:22px;flex:none;display:block}
 button{font:inherit}
@@ -16,7 +16,7 @@ aside{width:220px;flex:none;background:var(--card);border-right:1px solid var(--
 .brand{font-weight:800;font-size:1.1rem;margin:0 10px 16px;overflow-wrap:anywhere}
 nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:var(--mute);font-weight:600;padding:10px 12px;border-radius:12px;cursor:pointer;margin-bottom:2px;position:relative}
 nav button.on{background:var(--soft);color:var(--ac)}nav button svg.i{width:20px;height:20px}
-main{flex:1;min-width:0;max-width:560px;margin:0 auto;padding:18px 18px 40px}
+main{flex:1;width:100%;min-width:0;max-width:560px;margin:0 auto;padding:18px 18px 40px}
 h1{margin:0;font-size:1.7rem;font-weight:800;letter-spacing:-.3px}h2{font-size:1.05rem;margin:0 0 10px}.mute{color:var(--mute);font-size:.88rem}.sub{color:var(--mute);margin-top:2px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.nw{flex-wrap:nowrap}.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}.grow{flex:1;min-width:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;overflow-wrap:anywhere}
@@ -35,8 +35,8 @@ h1{margin:0;font-size:1.7rem;font-weight:800;letter-spacing:-.3px}h2{font-size:1
 .gw{float:right;display:inline-flex;gap:5px;align-items:center;background:rgba(255,255,255,.2);border-radius:999px;padding:4px 11px;font-size:.82rem;font-weight:600}.gw svg.i{width:15px;height:15px}
 .sh{display:flex;justify-content:space-between;align-items:center;margin:24px 0 10px}.sh h2{margin:0;font-size:1.15rem}.sh a,.lnk{color:var(--ac);font-weight:600;text-decoration:none;background:none;border:0;cursor:pointer;padding:0}
 .hs{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -18px;padding:0 18px 4px;scrollbar-width:none}
-.pc{flex:0 0 138px;scroll-snap-align:start;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;text-align:left;cursor:pointer;color:var(--ink)}
-.pc .tile{width:36px;height:36px;border-radius:11px;margin-bottom:10px}.pc b{display:block;font-size:1.7rem;line-height:1.1}.pc em{font-style:normal;color:var(--mute);font-size:.88rem}
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pc{display:flex;align-items:center;gap:12px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;text-align:left;cursor:pointer;color:var(--ink)}
+.pc b{display:block;font-size:1.6rem;line-height:1.1}.pc em{font-style:normal;color:var(--mute);font-size:.88rem;display:block}.sm3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}.sm3 b{display:block;font-size:1.05rem}
 .at{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin-bottom:10px;cursor:pointer;width:100%;text-align:left;color:var(--ink)}
 .at.crit{border-color:var(--er)}.at b{display:block}.at .lnk{padding:6px 4px}
 .grp{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}.oi{padding:14px 16px;border-bottom:1px solid var(--line);cursor:pointer}.oi:last-child{border-bottom:0}
@@ -144,6 +144,7 @@ const IC = {
   trend: '<path d="m3 17 6-6 4 4 8-8M15 7h6v6"/>', ext: '<path d="M14 4h6v6M10 14 20 4M18 14v6H4V6h6"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>', out: '<path d="M10 4H5v16h5M16 8l4 4-4 4M20 12H9"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>', tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>', key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/>',
+  layers: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', hourglass: '<path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/>',
 };
 const ic = (n, s) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"${s ? ` style="width:${s}px;height:${s}px"` : ""} aria-hidden="true">${IC[n] || ""}</svg>`;
@@ -157,6 +158,7 @@ const base = "/api/manage/" + slug;
 const SK = "login:" + slug; // remembered on this device, one entry per store
 const saved = (() => { try { return JSON.parse(localStorage.getItem(SK) || "{}"); } catch (e) { return {}; } })();
 let SN = "Your store", key = saved.key || sessionStorage.getItem("k") || "", tok = saved.tok || "", ME = { role: "owner", perms: {}, profile: {}, business: {} };
+let SL = null, ivTab = "stock", ivf = "all", ivq = "", invf = "all", invq = "";
 let P = [], O = [], S = [], T = [], U = [], DR = [], tab = "dash", lastTab = "dash", range = "30", flt = "all", orderTab = "inprocess", orderDrafts = {};
 let pq = "", pcat = "All", pfil = "all", oq = "", showOq = false, INV = null;
 const owner = () => ME.role == "owner";
@@ -169,7 +171,7 @@ async function api(p, method, body) {
   if (!r.ok) throw new Error(j.error || "Something went wrong");
   return j;
 }
-async function load() { [P, S, T, O, U, DR] = await Promise.all([api(base + "/products"), api(base + "/suppliers"), api(base + "/tags"), can("orders") ? api(base + "/orders") : [], owner() ? api(base + "/users") : [], owner() ? api(base + "/drafts") : []]); }
+async function load() { SL = null; [P, S, T, O, U, DR] = await Promise.all([api(base + "/products"), api(base + "/suppliers"), api(base + "/tags"), can("orders") ? api(base + "/orders") : [], owner() ? api(base + "/users") : [], owner() ? api(base + "/drafts") : []]); }
 async function start() {
   ME = await api(base + "/me"); await load();
   if (owner() && ME.business) SN = ME.business.name || SN;
@@ -234,7 +236,7 @@ const back = () => go(lastTab && lastTab != "inv" && lastTab != "acct" ? lastTab
 const showOrders = f => { flt = f; if (owner()) orderTab = f == "New" ? "inprocess" : f == "Packed" ? "confirmed" : "all"; go("ord"); };
 function drawNav() {
   const dot = unseen() ? '<i class="dot"></i>' : "";
-  const items = [["dash", "Dashboard", "home"], ["prod", "Products", "box"]]; if (can("orders")) items.push(["ord", "Orders", "bag"]); if (owner()) items.push(["inv", "New invoice", "file"]);
+  const items = [["dash", "Dashboard", "home"], ["prod", "Products", "box"]]; if (can("stock")) items.push(["inven", "Inventory", "layers"]); if (can("orders")) items.push(["ord", "Orders", "bag"]); if (owner()) items.push(["invs", "Invoices", "file"], ["inv", "New invoice", "plus"]);
   items.push(["sup", "Suppliers", "users"]); if (owner()) items.push(["tag", "Tags", "tag"], ["usr", "Staff", "key"]); items.push(["acct", "Account", "user"]);
   $("nav").innerHTML = items.map(([k, l, i]) => `<button class="${tab == k ? "on" : ""}" onclick="${k == "inv" ? "newInvoice()" : `go('${k}')`}">${ic(i)}${l}${k == "ord" ? dot : ""}</button>`).join("") + `<button onclick="logout()">${ic("out")}Log out</button>`;
   const tb = (k, i, l, d) => `<button class="${tab == k ? "on" : ""}" onclick="go('${k}')"><span class="ic2">${ic(i)}${d || ""}</span>${l}</button>`;
@@ -251,6 +253,8 @@ function topbar() {
     prod: () => title("Products", `${P.length} item${P.length == 1 ? "" : "s"} · ${low} low on stock`, `<button class="circ" onclick="openFilter()" aria-label="Filter">${ic("filter")}${pfil != "all" ? '<i class="dot"></i>' : ""}</button>`),
     ord: () => title("Orders", "", `<button class="circ" onclick="showOq=!showOq;oq='';draw()" aria-label="Search orders">${ic("search")}</button>`),
     sup: () => title("Suppliers", "The people you buy stock from."), tag: () => title("Tags", "Each tag becomes a section on your online store."), usr: () => title("Staff", "People who help you run the store."),
+    inven: () => title("Inventory", `${P.length} product${P.length == 1 ? "" : "s"} · ${sum(P, p => p.qty || 0)} units`),
+    invs: () => title("Invoices", `${O.filter(o => o.status != "Cancelled").length} invoice${O.filter(o => o.status != "Cancelled").length == 1 ? "" : "s"}`, `<button class="circ" onclick="newInvoice()" aria-label="New invoice">${ic("plus")}</button>`),
     inv: () => bk("New invoice", new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })), acct: () => bk("Account") }[tab]();
 }
 function fixbar() {
@@ -260,7 +264,7 @@ function fixbar() {
 }
 function draw() {
   $("brand").textContent = SN; drawNav();
-  $("topbar").innerHTML = topbar(); $("view").innerHTML = { dash: vDash, prod: vProd, ord: vOrd, sup: vSup, tag: vTag, usr: vUsr, inv: vInv, acct: vAcct }[tab](); $("fixbar").innerHTML = fixbar();
+  $("topbar").innerHTML = topbar(); $("view").innerHTML = { dash: vDash, prod: vProd, ord: vOrd, sup: vSup, tag: vTag, usr: vUsr, inv: vInv, acct: vAcct, inven: vInven, invs: vInvs }[tab](); $("fixbar").innerHTML = fixbar();
   $("bn").hidden = tab == "inv" || tab == "acct";
 }
 function openCreate() {
@@ -270,6 +274,8 @@ function openCreate() {
 }
 function openMore() {
   modal(`<h2 style="font-size:1.2rem">More</h2><div style="display:grid;gap:10px">
+  ${owner() ? `<button class="cr" style="margin:0" onclick="closeM();go('invs')">${tileFor("i", "file")}<b class="grow">Invoices</b>${ic("chev")}</button>` : ""}
+  ${can("stock") ? `<button class="cr" style="margin:0" onclick="closeM();go('inven')">${tileFor("v", "layers")}<b class="grow">Inventory</b>${ic("chev")}</button>` : ""}
   <button class="cr" style="margin:0" onclick="closeM();go('sup')">${tileFor("s", "users")}<b class="grow">Suppliers</b>${ic("chev")}</button>
   ${owner() ? `<button class="cr" style="margin:0" onclick="closeM();go('tag')">${tileFor("t", "tag")}<b class="grow">Tags</b>${ic("chev")}</button><button class="cr" style="margin:0" onclick="closeM();go('usr')">${tileFor("u", "key")}<b class="grow">Staff</b>${ic("chev")}</button>` : ""}
   <button class="cr" style="margin:0" onclick="closeM();go('acct')">${tileFor("a", "user")}<b class="grow">Account</b>${ic("chev")}</button>
@@ -343,12 +349,13 @@ function vDash() {
   const A = alerts(), cnt = s => O.filter(o => o.status == s).length;
   const att = `<div class="sh"><h2>Needs attention</h2>${A.length ? `<span class="bd er">${A.length}</span>` : ""}</div>` +
     (A.slice(0, 5).map(a => `<div class="at ${a.crit ? "crit" : ""}" role="button" tabindex="0" onclick="openProdSheet('${a.id}')">${tileIc(a.ico, a.c == "er" ? "var(--erb)" : "var(--wnb)", a.c == "er" ? "var(--er)" : "var(--wn)")}<div class="grow"><b>${esc(a.name)}</b><span class="mute">${esc(a.txt)}</span></div>${a.re && can("stock") ? `<button class="lnk" onclick="event.stopPropagation();reorder('${a.id}')">Reorder</button>` : `<span class="mute">${ic("chev")}</span>`}</div>`).join("") || '<div class="card mute">All good. Nothing needs attention.</div>');
-  const pipe = `<div class="sh"><h2>Order pipeline</h2><span class="mute">Live</span></div><div class="hs">${[["cart", "New orders", "New", "#eef0ff", "#4f46e5"], ["box", "To dispatch", "Packed", "#fff4dc", "#d98200"], ["truck", "In transit", "In transit", "#e8f2ff", "#1d8fe0"], ["check", "Delivered", "Delivered", "#e5f7ef", "#0f9d6b"]].map(([i, l, st, b, c]) => `<button class="pc" onclick="showOrders('${st}')">${tileIc(i, b, c)}<b>${cnt(st)}</b><em>${l}</em></button>`).join("")}</div>`;
+  const pipe = `<div class="sh"><h2>Order pipeline</h2><span class="mute">Live</span></div><div class="pg">${[["cart", "New orders", "New", "#eef0ff", "#4f46e5"], ["box", "To dispatch", "Packed", "#fff4dc", "#d98200"], ["truck", "In transit", "In transit", "#e8f2ff", "#1d8fe0"], ["check", "Delivered", "Delivered", "#e5f7ef", "#0f9d6b"]].map(([i, l, st, b, c]) => `<button class="pc" onclick="showOrders('${st}')">${tileIc(i, b, c)}<div><b>${cnt(st)}</b><em>${l}</em></div></button>`).join("")}</div>`;
+  const mg = (owner() || can("stock")) ? `<div class="sh"><h2>Manage</h2></div><div class="pg">${owner() ? `<button class="pc" onclick="go('invs')">${tileIc("file", "#eef0ff", "#4f46e5")}<div><b style="font-size:1.05rem">Invoices</b><em>${O.length} in all</em></div></button>` : ""}${can("stock") ? `<button class="pc" onclick="go('inven')">${tileIc("layers", "#fff4dc", "#d98200")}<div><b style="font-size:1.05rem">Inventory</b><em>${P.length} products</em></div></button>` : ""}</div>` : "";
   const recent = `<div class="sh"><h2>Recent orders</h2><a href="#" onclick="showOrders('all');return false">View all</a></div>` +
     (O.length ? `<div class="grp">${O.slice(0, 5).map(o => `<div class="oi" onclick="viewOrder('${esc(o.number)}')"><div class="row nw" style="justify-content:space-between"><b style="font-size:1.05rem">${esc(o.name)}</b>${owner() ? `<b>${inr(o.total)}</b>` : ""}</div><div class="mute">#${esc(o.number)}</div><div class="row" style="margin-top:8px"><span class="bd ${DB[o.status]}">${DL[o.status]}</span>${owner() ? `<span class="bd ${PB[pst(o)]}">${pst(o)}</span>` : ""}</div></div>`).join("")}</div>` : '<div class="card mute">No orders yet. Share your store link to get the first one.</div>');
   const live = P.filter(p => p.active && (p.qty == null || p.qty > 0)).length, dr = P.filter(p => !p.active).length, oos = P.filter(p => p.active && p.qty === 0).length;
   const stats = `<div class="st">${[["Live", live], ["Drafts", dr], ["Out of stock", oos]].map(([l, v]) => `<div><b>${v}</b>${l}</div>`).join("")}</div>`;
-  if (!owner()) return (can("add") ? `<button class="btn wide" style="margin-bottom:6px" onclick="openProd()">${ic("plus")} Add product</button>` : "") + att + (can("orders") ? pipe + recent : "") + `<div class="store"><div class="row nw" style="justify-content:space-between"><b>${ic("store")} Online store</b></div>${stats}</div>`;
+  if (!owner()) return (can("add") ? `<button class="btn wide" style="margin-bottom:6px" onclick="openProd()">${ic("plus")} Add product</button>` : "") + att + mg + (can("orders") ? pipe + recent : "") + `<div class="store"><div class="row nw" style="justify-content:space-between"><b>${ic("store")} Online store</b></div>${stats}</div>`;
 
   const os = O.filter(o => o.status != "Cancelled" && inR(o)), pv = O.filter(o => o.status != "Cancelled" && inP(o));
   const rev = sum(os, o => o.total), coll = sum(os, o => o.paid || 0), prof = sum(os, o => o.total - (o.gst || 0) - (o.cost || 0));
@@ -358,7 +365,7 @@ function vDash() {
   return `<div class="row nw" style="justify-content:space-between;margin:0 0 14px"><h1 style="font-size:1.55rem">Overview</h1><div class="seg">${[["1", "Today"], ["30", "30 days"], ["365", "Year"]].map(([v, l]) => `<button class="${range == v ? "on" : ""}" onclick="range='${v}';draw()">${l}</button>`).join("")}</div></div>
   <div class="hero">${gw == null ? "" : `<span class="gw">${ic("trend")} ${Math.abs(gw)}%${gw < 0 ? " down" : ""}</span>`}<small>Sales revenue · ${lbl}</small><div class="big">${inr(rev)}</div>
     <div class="two"><div><small>Profit</small><b>${inr(prof)}</b></div><div><small>Collected</small><b>${inr(coll)}</b></div></div></div>
-  ${pipe}${att}${recent}
+  ${pipe}${mg}${att}${recent}
   <div class="store"><div class="row nw" style="justify-content:space-between"><b style="font-size:1.1rem;display:flex;gap:8px;align-items:center">${ic("store")} Online store</b><a href="/s/${esc(slug)}" target="_blank">Open ${ic("ext")}</a></div>${stats}
     <div class="lbl">Your store link</div><div class="linkbar">${ic("link")}<span class="url">${esc(url)}</span><button class="btn cp" onclick="copyStoreLink(this)">${ic("copy")} Copy</button></div>
     <div class="btns"><button class="wa" onclick="shareStoreLink()">${ic("wa")} Share</button><button onclick="showStoreQr()">${ic("qr")} QR code</button></div></div>`;
@@ -405,10 +412,12 @@ function openAdjust(id) {
   modal(`<h2 style="font-size:1.2rem">Adjust stock</h2><div class="mute" style="margin-bottom:10px">${esc(p.name)} · now ${p.qty == null ? "not tracked" : p.qty}</div>
   <div class="qty" style="justify-content:center;margin:12px 0 8px"><button onclick="bump(-1)" aria-label="One less">${ic("minus")}</button><input id="adjq" type="number" min="0" step="1" value="${p.qty ?? 0}" style="width:120px;text-align:center;font-size:1.5rem;margin:0" aria-label="New stock"><button onclick="bump(1)" aria-label="One more">${ic("plus")}</button></div>
   <div class="row" style="justify-content:center;margin-bottom:14px">${[10, 50, 100].map(n => `<button class="btn g sm" onclick="bump(${n})">+${n}</button>`).join("")}</div>
-  <div class="acts"><button class="btn g grow" onclick="openProdSheet('${id}')">Back</button><button class="btn grow" onclick="saveAdjust('${id}')">Save stock</button></div>`);
+  <label>Why are you changing it?<select id="adjr" style="width:100%;margin:5px 0 12px">${["Stock received", "Counted again (correction)", "Damaged or expired", "Returned by a customer", "Other"].map(r => `<option>${r}</option>`).join("")}</select></label>
+  <label>Note (optional)<input id="adjn" maxlength="100" placeholder="e.g. delivery from the supplier"></label>
+  <div class="acts"><button class="btn g grow" onclick="${tab == "inven" ? "closeM()" : `openProdSheet('${id}')`}">${tab == "inven" ? "Cancel" : "Back"}</button><button class="btn grow" onclick="saveAdjust('${id}')">Save stock</button></div>`);
 }
 const bump = d => { const i = $("adjq"); i.value = Math.max(0, (Math.floor(+i.value) || 0) + d); };
-function saveAdjust(id) { const q = Math.floor(+$("adjq").value); if (!(q >= 0)) return alert("Enter a whole number."); act(async () => { await api(base + "/products/" + id, "PUT", { qty: q }); closeM(); }); }
+function saveAdjust(id) { const q = Math.floor(+$("adjq").value); if (!(q >= 0)) return alert("Enter a whole number."); act(async () => { await api(base + "/products/" + id, "PUT", { qty: q, stockReason: $("adjr").value, stockNote: $("adjn").value }); closeM(); }); }
 
 const setLive = (id, on) => act(() => api(base + "/products/" + id, "PUT", { active: on }));
 function openProd(id) {
@@ -488,7 +497,7 @@ function orderCard(o) {
     ${own ? `<div class="tot" style="border-top:0;padding-top:0"><div><span class="mute">Total</span><br><b>${inr(o.total)}</b></div><div class="row" style="justify-content:flex-end"><span class="bd ${DB[o.status]}">${DL[o.status]}</span><span class="bd ${PB[ps]}">${ps}</span></div></div>` : `<div class="row" style="margin:6px 0"><span class="bd ${DB[o.status]}">${DL[o.status]}</span></div>`}
     <div class="row nw" style="margin-top:10px;align-items:flex-end;gap:10px"><label class="grow">Delivery<select style="width:100%" ${cancelled ? "disabled" : ""} onclick="event.stopPropagation()" onchange="setStatus('${n}',this.value)">${stOpts.map(k => `<option value="${k}" ${o.status == k ? "selected" : ""}>${DL[k]}</option>`).join("")}</select></label>
       ${own ? `<label class="grow">Payment<select style="width:100%" ${cancelled ? "disabled" : ""} onclick="event.stopPropagation()" onchange="setPay('${n}',this.value)">${PO.map(([v, l]) => `<option value="${v}" ${payNow(o) == v ? "selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}</div>
-    <div class="acts">${own ? `${!cancelled && due(o) > 0 ? `<button class="btn sm" onclick="event.stopPropagation();openPay('${n}')">Record payment</button>` : ""}<a class="btn g sm" target="_blank" rel="noopener" href="${esc(invLink(o))}" onclick="event.stopPropagation()">View invoice</a>${o.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waInvoice(o))}" onclick="event.stopPropagation()">Share invoice</a>` : ""}${!cancelled && due(o) > 0 && o.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}" onclick="event.stopPropagation()">Send reminder</a>` : ""}` : `<button class="btn g sm" onclick="event.stopPropagation();viewOrder('${n}')">View order</button>`}</div></div>`;
+    <div class="acts">${own ? `${!cancelled && due(o) > 0 ? `<button class="btn sm" onclick="event.stopPropagation();openPay('${n}')">Record payment</button>` : ""}<a class="btn g sm" target="_blank" rel="noopener" href="${esc(invLink(o))}" onclick="event.stopPropagation()">View invoice</a>${o.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waInvoice(o))}" onclick="event.stopPropagation()">Share invoice</a>` : ""}${!cancelled && due(o) > 0 && o.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}" onclick="event.stopPropagation()">Send reminder</a>` : ""}<button class="btn g sm red" onclick="event.stopPropagation();openDelete('${n}')" aria-label="Delete order ${n}">${ic("trash")} Delete</button>` : `<button class="btn g sm" onclick="event.stopPropagation();viewOrder('${n}')">View order</button>`}</div></div>`;
 }
 function editOrderCard(o) {
   const n = esc(o.number), qs = orderDrafts[o.number] || Object.fromEntries(o.lines.map((l, i) => [i, l.qty])); orderDrafts[o.number] = qs;
@@ -497,7 +506,7 @@ function editOrderCard(o) {
     <div class="oe-h"><div><b>${esc(o.name)}</b><div class="mute">#${n} · ${ago(o.createdAt)}${o.phone ? " · " + esc(o.phone) : ""}</div></div>${chan(o)}</div>
     ${o.lines.map((l, i) => `<div class="li"><div style="min-width:0"><div>${esc(l.name)}</div><div class="mute">${inr(l.price)} each</div></div><div class="qty"><button onclick="event.stopPropagation();changeOrderQty('${n}',${i},-1)" aria-label="Decrease quantity">${ic("minus")}</button><b>${Number(qs[i] ?? l.qty)}</b><button onclick="event.stopPropagation();changeOrderQty('${n}',${i},1)" aria-label="Increase quantity">${ic("plus")}</button></div>${thumb(l, 40)}</div>`).join("")}
     <div class="tot"><span class="mute" style="font-size:1rem">Total</span><b>${inr(total)}</b></div>
-    <div class="acts"><button class="btn g sm" onclick="event.stopPropagation();viewOrder('${n}')">View order</button></div>
+    <div class="acts"><button class="btn g sm" onclick="event.stopPropagation();viewOrder('${n}')">View order</button><button class="btn g sm red" onclick="event.stopPropagation();openDelete('${n}')" aria-label="Delete order ${n}">${ic("trash")} Delete</button></div>
     <div class="two2"><button class="btn g red" onclick="event.stopPropagation();rejectOrder('${n}')">Reject</button><button class="btn" onclick="event.stopPropagation();confirmOrder('${n}')">${ic("check")} Confirm order</button></div></article>`;
 }
 function changeOrderQty(n, i, delta) { const o = O.find(x => x.number === n); if (!orderDrafts[n]) orderDrafts[n] = Object.fromEntries(o.lines.map((l, j) => [j, l.qty])); orderDrafts[n][i] = Math.max(0, Number(orderDrafts[n][i] ?? o.lines[i].qty) + delta); draw(); }
@@ -533,6 +542,7 @@ function viewOrder(n) {
   <div class="row mute nw" style="justify-content:space-between"><span>Item and quantity</span><span>Photo</span></div>
   ${o.lines.map(l => `<div class="row nw" style="justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)"><div style="min-width:0"><b>${esc(l.name)}</b><div class="mute">Quantity: ${l.qty}${own ? ` × ${inr(l.price)} = <b style="color:var(--ink)">${inr(l.price * l.qty)}</b>` : ""}</div></div>${thumb(l, 64)}</div>`).join("")}
   ${own ? `<div style="border-top:2px solid var(--line);margin-top:6px;padding-top:8px">${o.gst > 0 || o.discount > 0 ? `<div class="tl"><span>Subtotal</span><span>${inr(o.subtotal ?? o.total)}</span></div>${o.discount > 0 ? `<div class="tl"><span>Discount</span><span>−${inr(o.discount)}</span></div>` : ""}${o.gst > 0 ? `<div class="tl"><span>GST ${o.gstRate}%</span><span>${inr(o.gst)}</span></div>` : ""}` : ""}<div class="row nw" style="justify-content:space-between"><b>Total</b><b>${inr(o.total)}</b></div><div class="tl"><span>Paid</span><span>${inr(o.paid || 0)}</span></div><div class="tl"><span>Balance due</span><span>${inr(due(o))}</span></div><div class="mute">Payment: ${pst(o)}${(o.payments || []).length ? " · " + [...new Set(o.payments.map(p => p.method))].join(", ") : ""}</div></div>` : ""}
+  ${own ? `<div style="text-align:right;margin-top:10px"><button class="lnk" style="color:var(--er)" onclick="openDelete('${esc(o.number)}')">${ic("trash", 16)} Delete this order</button></div>` : ""}
   <div class="acts"><button class="btn g grow" onclick="closeM()">Close</button>${own ? `<a class="btn g grow" target="_blank" rel="noopener" href="${esc(invLink(o))}">Open invoice</a>${o.phone ? `<a class="btn grow" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">${ic("wa")} Send invoice</a>` : ""}` : ""}</div>`);
 }
 function setStatus(n, v) {
@@ -551,6 +561,16 @@ function openPay(n) {
   <div class="acts"><button type="button" class="btn g grow" onclick="closeM()">Cancel</button><button class="btn grow">Save payment</button></div></form>`);
 }
 function savePay(e, n) { e.preventDefault(); const b = Object.fromEntries(new FormData(e.target)); act(async () => { await api(base + "/orders/" + n + "/payments", "POST", b); closeM(); }); }
+
+// ----- delete an order or invoice made by mistake (owner only) -----
+function openDelete(n) {
+  const o = O.find(x => x.number == n); if (!o) return; const cancelled = o.status == "Cancelled";
+  modal(`<h2 style="font-size:1.2rem">Delete #${esc(o.number)}?</h2>
+  <div class="card" style="margin:10px 0"><b>${esc(o.name)}</b><div class="mute">${inr(o.total)} · ${DL[o.status]} · ${ago(o.createdAt)}</div></div>
+  <p class="mute">This removes the order and its invoice from your lists and sales numbers. You can’t undo it. If you only want to stop an order, choose Reject or Cancelled instead.</p>
+  <div style="display:grid;gap:10px">${cancelled ? `<button class="btn red wide" style="background:var(--erb);border:1px solid var(--er)" onclick="doDelete('${esc(o.number)}',1)">${ic("trash")} Delete</button>` : `<button class="btn wide" style="background:var(--er);color:#fff" onclick="doDelete('${esc(o.number)}',1)">${ic("trash")} Delete and put the items back in stock</button><button class="btn g wide red" onclick="doDelete('${esc(o.number)}',0)">Delete, but leave stock as it is</button>`}<button class="btn g wide" onclick="closeM()">Keep it</button></div>`);
+}
+function doDelete(n, restock) { act(async () => { await api(base + "/orders/" + n + "?restock=" + (restock ? 1 : 0), "DELETE"); delete orderDrafts[n]; closeM(); }); }
 
 // ----- New invoice -----
 const blankInv = () => ({ id: "", name: "", phone: "", mode: "store", address: "", lines: [], discount: 0, gst: (ME.business && ME.business.gstDefault) || 0, notes: "", pay: { status: "paid", method: "UPI", amount: 0 } });
@@ -669,6 +689,53 @@ async function newKey() {
     modal(`<h2 style="font-size:1.2rem">Your new store key</h2><p class="mute">Save it somewhere safe. It is shown only now.</p><div class="card" style="font-family:monospace;font-size:1.05rem;overflow-wrap:anywhere">${esc(r.key)}</div>
     <div class="acts"><button class="btn g grow" onclick="closeM()">Close</button><button class="btn grow" onclick="navigator.clipboard.writeText('${esc(r.key)}');this.textContent='Copied'">Copy key</button></div>`);
   } catch (e) { alert(e.message); }
+}
+
+// ----- Invoices: every invoice in one place (owner) -----
+const dateOf = o => o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "";
+function invRows() {
+  const q = invq.trim().toLowerCase();
+  return O.filter(o => (invf == "cancelled" ? o.status == "Cancelled" : o.status != "Cancelled" && (invf == "all" || (invf == "unpaid" ? due(o) > 0 : due(o) <= 0))) && (!q || [o.number, o.name, o.phone].join(" ").toLowerCase().includes(q)));
+}
+function invListHtml() {
+  const L = invRows(), live = L.filter(o => o.status != "Cancelled"), billed = sum(live, o => o.total), coll = sum(live, o => o.paid || 0);
+  return `<div class="card" style="padding:14px"><div class="sm3"><div><span class="mute">Billed</span><b>${inr(billed)}</b></div><div><span class="mute">Collected</span><b style="color:var(--ok)">${inr(coll)}</b></div><div><span class="mute">Outstanding</span><b style="color:var(--er)">${inr(billed - coll)}</b></div></div></div>` +
+  (L.map(o => { const ps = pst(o), n = esc(o.number), cancelled = o.status == "Cancelled";
+    return `<div class="card oe" style="padding:14px"><div class="oe-h" style="margin-bottom:8px"><div><b>#${n}</b><div class="mute">${esc(o.name)}${o.phone ? " · " + esc(o.phone) : ""}</div></div><div style="text-align:right"><b>${inr(o.total)}</b><div class="mute">${dateOf(o)}</div></div></div>
+      <div class="row"><span class="bd ${PB[ps]}">${ps}</span>${chan(o)}${o.gst > 0 ? `<span class="bd nt">GST ${o.gstRate}%</span>` : ""}${o.discount > 0 ? `<span class="bd nt">Discount ${inr(o.discount)}</span>` : ""}</div>
+      <div class="acts"><a class="btn g sm" target="_blank" rel="noopener" href="${esc(invLink(o))}">${ic("file")} View</a>${o.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">${ic("wa")} Share</a>` : ""}${!cancelled && due(o) > 0 && o.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}">Remind</a>` : ""}<button class="btn g sm red" onclick="openDelete('${n}')" aria-label="Delete invoice ${n}">${ic("trash")} Delete</button></div></div>`; }).join("") || '<p class="mute" style="padding:12px 4px">No invoices here.</p>');
+}
+function vInvs() {
+  if (!owner()) return '<p class="mute">Only the owner can see invoices.</p>';
+  return `<div class="srch">${ic("search")}<input placeholder="Search by number, name or phone" value="${esc(invq)}" oninput="invq=this.value;$('ivl2').innerHTML=invListHtml()" autocomplete="off"></div>
+  <div class="chips">${[["all", "All"], ["unpaid", "Unpaid"], ["paid", "Paid"], ["cancelled", "Cancelled"]].map(([v, l]) => `<button class="${invf == v ? "on" : ""}" onclick="invf='${v}';draw()">${l}</button>`).join("")}</div><div id="ivl2">${invListHtml()}</div>`;
+}
+
+// ----- Inventory: stock levels, quick adjust, history -----
+const fmtDate = s => new Date(s).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+function ivRow(p) {
+  const st = stockInfo(p), d = daysTo(p);
+  return `<button class="pr ${st.crit ? "crit" : ""}" ${can("stock") ? `onclick="openAdjust('${p.id}')"` : ""}>${picOf(p)}<div class="grow"><div class="nm">${esc(p.name)}</div><div class="mute">${esc(p.sku || "No code")}${p.expiry ? " · " + (d < 0 ? "expired" : "expires " + fmtDate(p.expiry)) : ""}</div>${can("cost") && p.qty != null ? `<div class="mute">${inr((p.cost || 0) * p.qty)} at cost</div>` : ""}</div><div class="rt"><b style="font-size:1.3rem">${p.qty == null ? "—" : p.qty}</b><span class="bd ${st.cls}">${st.txt}</span></div></button>`;
+}
+function ivFilter(p) {
+  const low = p.lowAt ?? 5, d = daysTo(p);
+  return { all: 1, low: p.qty != null && p.qty > 0 && p.qty <= low * 3, oos: p.qty != null && p.qty <= 0, exp: d != null && d <= 30 }[ivf];
+}
+function histHtml() {
+  if (SL === null) { loadLog(); return '<p class="mute">Loading history…</p>'; }
+  const q = ivq.trim().toLowerCase(), L = SL.filter(r => !q || [r.name, r.sku, r.reason, r.by].join(" ").toLowerCase().includes(q));
+  return L.map(r => `<div class="card" style="padding:12px 14px"><div class="row nw" style="justify-content:space-between;align-items:flex-start"><div style="min-width:0"><b>${esc(r.name)}</b><div class="mute">${esc(r.reason)}${r.note ? " · " + esc(r.note) : ""}</div></div><span class="bd ${r.delta > 0 ? "ok" : "er"}">${r.delta > 0 ? "+" : ""}${r.delta}</span></div><div class="mute" style="margin-top:4px">Now ${r.after} · ${esc(r.by)} · ${ago(r.at)}</div></div>`).join("") || '<p class="mute" style="padding:12px 4px">No stock changes yet.</p>';
+}
+async function loadLog() { try { SL = await api(base + "/stock-log"); } catch (e) { SL = []; } if (tab == "inven" && ivTab == "hist") { const b = $("ivb"); if (b) b.innerHTML = histHtml(); } }
+const ivBody = () => ivTab == "hist" ? histHtml() : (P.filter(p => ivFilter(p) && (!ivq.trim() || [p.name, p.sku, p.supplier].join(" ").toLowerCase().includes(ivq.trim().toLowerCase()))).map(ivRow).join("") || '<p class="mute" style="padding:12px 4px">No products here.</p>');
+function vInven() {
+  if (!can("stock")) return '<p class="mute">You don’t have access to inventory.</p>';
+  const low = P.filter(p => p.qty != null && p.qty > 0 && p.qty <= (p.lowAt ?? 5) * 3).length, out = P.filter(p => p.qty != null && p.qty <= 0).length, units = sum(P, p => p.qty || 0), value = sum(P, p => (p.cost || 0) * (p.qty || 0));
+  const card = (i, b, c, l, v, fn) => `<button class="pc" onclick="${fn}">${tileIc(i, b, c)}<div><b>${v}</b><em>${l}</em></div></button>`;
+  return `<div class="pg" style="margin-bottom:14px">${card("box", "#eef0ff", "#4f46e5", "Units in stock", units, "ivTab='stock';ivf='all';draw()")}${can("cost") ? card("trend", "#e5f7ef", "#0f9d6b", "Stock value", inr(value), "ivTab='stock';ivf='all';draw()") : card("layers", "#e5f7ef", "#0f9d6b", "Products", P.length, "ivTab='stock';ivf='all';draw()")}${card("batt", "#fff4dc", "#d98200", "Low on stock", low, "ivTab='stock';ivf='low';draw()")}${card("alert", "#fdebee", "#e0364d", "Out of stock", out, "ivTab='stock';ivf='oos';draw()")}</div>
+  <div class="ord-tabs" style="grid-template-columns:1fr 1fr">${[["stock", "Stock"], ["hist", "History"]].map(([k, l]) => `<button class="${ivTab == k ? "on" : ""}" onclick="ivTab='${k}';ivq='';draw()">${l}</button>`).join("")}</div>
+  <div class="srch">${ic("search")}<input placeholder="${ivTab == "hist" ? "Search the history" : "Search by name or code"}" value="${esc(ivq)}" oninput="ivq=this.value;$('ivb').innerHTML=ivBody()" autocomplete="off"></div>
+  ${ivTab == "stock" ? `<div class="chips">${[["all", "All"], ["low", "Low on stock"], ["oos", "Out of stock"], ["exp", "Expiring"]].map(([v, l]) => `<button class="${ivf == v ? "on" : ""}" onclick="ivf='${v}';draw()">${l}</button>`).join("")}</div>` : ""}<div id="ivb">${ivBody()}</div>`;
 }
 
 // ----- suppliers -----
