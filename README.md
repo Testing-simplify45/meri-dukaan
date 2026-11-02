@@ -50,8 +50,19 @@ Every order is saved and an email is sent to you.
 - **Colours, sizes, flavours and weights (Merge under):** add every colour or flavour as its own product, with its own photos, price and stock. In the product form, under **Variants**, choose **Merge under** and pick the main product, then type its colour and size (or flavour and weight). On the online store the products show as one listing with buttons to pick the colour and size. When a customer searches, every matching product also shows on its own, still with the buttons. The packer sees the choice on the order, for example "Tee (Blue, L)". Deleting the main product turns the others back into normal listings.
 - **Orders:** each order lists its items in a line (full product name, quantity, photo on the right). **View order** opens it like a bill. Every order has a **Delivery** dropdown (New, To dispatch, In transit, Delivered, Cancelled) and, for the owner only, a **Payment** dropdown (Unpaid, Paid by Cash, UPI, Card, Bank or COD, or Part payment).
 - **What staff see on orders:** only the order statuses you tick for them (New and To dispatch by default). They only get the Delivery dropdown. They never see prices, payments or invoices, and they cannot cancel. Once an order moves past what you ticked, it disappears from their screen and stays with you.
+- **Editing a new order (owner):** open **Orders → In-Process**. Change each item's quantity with + and −, then tap **Confirm order** to move it to **Confirmed** (To dispatch), or **Reject** to cancel it. Stock is adjusted for you, and removed items go back into stock. A quantity can't go above what you have in stock, and an order that already has a payment recorded can't be re-quantified until it is set back to Unpaid.
 - **Invoices:** the owner taps **Send invoice** on any order. It opens WhatsApp with a message and a private invoice link. The customer can open the link, print it or save it as a PDF.
 - **New orders:** a red dot shows on **Orders** until you tap the order. The page checks for new orders every 30 seconds.
+
+## The mobile screens (Home, Products, Orders, New invoice, Account)
+- **Home:** your photo, greeting and name (tap to open Account), search and bell, then Overview with Today / 30 days / Year, the sales card (revenue, profit, collected), the order pipeline, Needs attention (**Reorder** opens WhatsApp to the product's supplier, using the phone number under Suppliers), recent orders, and the Online store card with your link, Copy, Share on WhatsApp and a QR code.
+- **+ button:** opens **Create new** with New product and New invoice. Staff who can add products go straight to New product.
+- **Products:** search by name or product code, category chips (your Tags), filter button, stock badges, and a sheet with price, cost, stock, expiry, online-store switch, **Adjust stock** and **Edit product**.
+- **Orders:** In-Process, Confirmed and All. New orders can be edited and confirmed or rejected. Confirmed orders have Record payment, View invoice, Share invoice and Send reminder. Drafts live under All.
+- **New invoice (owner only):** bill a counter sale (**At store**, handed over at once) or a phone order (**Online**, ready to dispatch). Pick products, payment, discount, GST and notes. Stock goes down when you tap **Create invoice**, never for a draft. The discount comes off first, then GST is added.
+- **Order numbers** are short and count up, like MD-1045, using the first letters of your business name. Older orders keep their old numbers.
+- **Account:** photo, name, email, phone, Business details (address, GSTIN, phone, usual GST rate, shop name), and Change password for staff or **Make a new store key** for you. The owner's email here is where new-order alerts go.
+- **GST:** the app only does the sums you choose. Please check the rules with your accountant. Sales revenue on Home includes GST collected, and profit takes GST out.
 
 ## Updating the app later
 1. Unzip the new zip file.

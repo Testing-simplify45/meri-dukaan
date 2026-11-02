@@ -13,7 +13,7 @@ const stamp = () => FV.serverTimestamp();
 const app = express();
 app.set("trust proxy", 1);
 const small = express.json({ limit: "100kb" }), big = express.json({ limit: "1mb" }); // photos are bigger than normal requests
-app.use((req, res, next) => (req.method === "POST" && /\/photos$/.test(req.path) ? big : small)(req, res, next));
+app.use((req, res, next) => (req.method === "POST" && /\/photos?$/.test(req.path) ? big : small)(req, res, next));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- helpers ----------
@@ -24,6 +24,8 @@ const clean = (s, n) => String(s || "").trim().slice(0, n);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const same = (a, b) => { a = Buffer.from(String(a || "")); b = Buffer.from(String(b || "")); return b.length > 0 && a.length === b.length && crypto.timingSafeEqual(a, b); };
 const lname = d => { const o = [d.o1, d.o2].filter(Boolean); return o.length && !o.every(v => d.name.toLowerCase().includes(String(v).toLowerCase())) ? `${d.name} (${o.join(", ")})` : d.name; };
+const prefixOf = name => { const w = String(name || "").replace(/[^A-Za-z0-9 ]/g, "").trim().split(/\s+/).filter(Boolean); const p = (w.length > 1 ? w.slice(0, 3).map(x => x[0]).join("") : (w[0] || "").slice(0, 2)).toUpperCase(); return p.length >= 2 ? p : "OR"; };
+const RATES = [0, 5, 12, 18, 28], PAY_METHODS = ["UPI", "Cash", "Card", "Bank"]; // GST rates and the ways a counter sale can be paid
 const num = (v, d) => (v === "" || v == null ? d : Number(v));
 const store = slug => db.collection("stores").doc(slug);
 const sub = (req, name) => store(req.params.slug).collection(name);
@@ -100,10 +102,10 @@ app.post("/api/store/:slug/orders", rateLimit({ windowMs: 10 * 60 * 1000, limit:
     if (!(q >= 1 && q <= 20) || !/^[A-Za-z0-9]{1,40}$/.test(id)) throw new Bad("Invalid item in your cart.");
     want[id] = (want[id] || 0) + q;
   }
-  const number = "ORD-" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
   const order = await db.runTransaction(async t => {
     const ids = Object.keys(want);
     const snaps = await Promise.all(ids.map(id => t.get(ref.collection("products").doc(id))));
+    const st = await t.get(ref), seq = (st.data().orderSeq || 1000) + 1, number = prefixOf(st.data().name) + "-" + seq;
     const lines = []; let total = 0, cost = 0;
     snaps.forEach((p, i) => {
       if (!p.exists || !p.data().active) throw new Bad("An item in your cart is no longer available.");
@@ -113,12 +115,13 @@ app.post("/api/store/:slug/orders", rateLimit({ windowMs: 10 * 60 * 1000, limit:
       total += d.price * q; cost += (d.cost || 0) * q; // prices always come from the database
     });
     snaps.forEach((p, i) => { if (p.data().qty != null) t.update(p.ref, { qty: p.data().qty - want[ids[i]] }); });
-    const o = { number, ...cust, lines, total, cost, status: "New", paid: 0, payments: [], seen: false };
+    const o = { number, ...cust, lines, total, cost, status: "New", paid: 0, payments: [], seen: false, channel: "online" }; // channel "store" is for orders you enter yourself
+    t.update(ref, { orderSeq: seq });
     t.set(ref.collection("orders").doc(number), { ...o, createdAt: stamp() });
     return o;
   });
   await sendOrderEmail(s.data(), order).catch(console.error); // finish before replying (Vercel pauses after a reply)
-  res.json({ number, total: order.total });
+  res.json({ number: order.number, total: order.total });
 }));
 
 // ---------- you (platform owner): create stores ----------
@@ -150,11 +153,11 @@ const auth = h(async (req, res, next) => {
   const s = await store(req.params.slug).get();
   if (!s.exists) return res.status(401).json({ error: "Wrong key" });
   const k = req.get("x-key");
-  if (k && (same(k, s.data().adminKey) || same(k, process.env.ADMIN_PASSWORD))) { req.who = { role: "owner", name: "Owner", perms: { ...ALL, orderView: STATUSES } }; return next(); }
+  if (k && (same(k, s.data().adminKey) || same(k, process.env.ADMIN_PASSWORD))) { req.who = { role: "owner", name: (s.data().profile || {}).name || "Owner", perms: { ...ALL, orderView: STATUSES }, viaStoreKey: same(k, s.data().adminKey) }; return next(); }
   const p = verify(req.get("x-token"));
   if (p && p.slug === req.params.slug) {
     const u = await sub(req, "users").doc(p.uid).get();
-    if (u.exists && u.data().active) { req.who = { role: "staff", name: u.data().name, perms: cleanPerms(u.data().perms) }; return next(); }
+    if (u.exists && u.data().active) { req.who = { role: "staff", name: u.data().name, perms: cleanPerms(u.data().perms), uid: u.id, profile: u.data().profile || {}, email: "" }; return next(); }
   }
   res.status(401).json({ error: "Please log in again." });
 });
@@ -162,7 +165,105 @@ const can = (req, p) => req.who.role === "owner" || !!req.who.perms[p];
 const need = (...ps) => (req, res, next) => ps.some(p => can(req, p)) ? next() : res.status(403).json({ error: "You don’t have permission to do that." });
 const ownerOnly = (req, res, next) => req.who.role === "owner" ? next() : res.status(403).json({ error: "Only the owner can do that." });
 
-app.get(m + "/me", auth, (req, res) => res.json({ role: req.who.role, name: req.who.name, perms: req.who.perms }));
+const photoUrl = (req, id) => id ? `/api/photo/${req.params.slug}/${id}` : "";
+app.get(m + "/me", auth, h(async (req, res) => {
+  const out = { role: req.who.role, name: req.who.name, perms: req.who.perms };
+  if (req.who.role === "owner") {
+    const d = (await store(req.params.slug).get()).data(), p = d.profile || {};
+    Object.assign(out, { profile: { name: p.name || "", email: d.ownerEmail || "", phone: p.phone || "", photo: photoUrl(req, p.photo) }, business: { name: d.name, address: (d.business || {}).address || "", gstin: (d.business || {}).gstin || "", phone: (d.business || {}).phone || "", gstDefault: (d.business || {}).gstDefault || 0 } });
+  } else { const p = req.who.profile; Object.assign(out, { profile: { name: req.who.name, email: p.email || "", phone: p.phone || "", photo: photoUrl(req, p.photo) } }); }
+  res.json(out);
+}));
+
+// ----- account: your own name, email, phone and photo; password or store key -----
+app.put(m + "/account", auth, h(async (req, res) => {
+  const name = clean(req.body.name, 60), email = clean(req.body.email, 120), phone = clean(req.body.phone, 20);
+  if (!name) throw new Bad("Enter your name.");
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) throw new Bad("That email doesn’t look right.");
+  if (phone && !/^[0-9+\-\s]{8,15}$/.test(phone)) throw new Bad("Enter a valid phone number.");
+  if (req.who.role === "owner") { const ref = store(req.params.slug), d = (await ref.get()).data(); await ref.update({ profile: { ...(d.profile || {}), name, phone }, ownerEmail: email }); }
+  else { const ref = sub(req, "users").doc(req.who.uid), d = (await ref.get()).data(); await ref.update({ name, profile: { ...(d.profile || {}), email, phone } }); }
+  res.json({ ok: true });
+}));
+app.post(m + "/account/photo", auth, h(async (req, res) => {
+  const mt = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(req.body.data || ""));
+  if (!mt) throw new Bad("Please choose a photo.");
+  const buf = Buffer.from(mt[2], "base64"); if (buf.length > 300 * 1024) throw new Bad("That photo is too large.");
+  const id = crypto.randomBytes(8).toString("hex"), owner = req.who.role === "owner";
+  const ref = owner ? store(req.params.slug) : sub(req, "users").doc(req.who.uid), d = (await ref.get()).data(), old = (d.profile || {}).photo;
+  await sub(req, "photos").doc(id).set({ type: mt[1], data: buf, createdAt: stamp() });
+  await ref.update({ profile: { ...(d.profile || {}), photo: id } });
+  if (old) await sub(req, "photos").doc(old).delete();
+  res.json({ photo: photoUrl(req, id) });
+}));
+app.post(m + "/account/password", auth, h(async (req, res) => {
+  if (req.who.role === "owner") throw new Bad("Owners use “Make a new store key” instead.");
+  const ref = sub(req, "users").doc(req.who.uid), d = (await ref.get()).data(), next = String(req.body.next || "");
+  if (!check(String(req.body.current || ""), d.hash)) throw new Bad("Your current password is not right.");
+  if (next.length < 6) throw new Bad("The new password must be at least 6 characters.");
+  await ref.update({ hash: hash(next) }); res.json({ ok: true });
+}));
+app.post(m + "/account/new-key", auth, ownerOnly, h(async (req, res) => {
+  const key = crypto.randomBytes(12).toString("hex"); await store(req.params.slug).update({ adminKey: key });
+  res.json({ key, viaStoreKey: !!req.who.viaStoreKey }); // the old store key stops working straight away
+}));
+app.put(m + "/business", auth, ownerOnly, h(async (req, res) => {
+  const b = req.body, name = clean(b.name, 60), gstDefault = Number(b.gstDefault || 0), gstin = clean(b.gstin, 15).toUpperCase();
+  if (!name) throw new Bad("Enter your business name.");
+  if (!RATES.includes(gstDefault)) throw new Bad("Pick a GST rate from the list.");
+  if (gstin && !/^[0-9A-Z]{15}$/.test(gstin)) throw new Bad("A GSTIN has 15 letters and numbers.");
+  await store(req.params.slug).update({ name, business: { address: clean(b.address, 200), gstin, phone: clean(b.phone, 20), gstDefault } });
+  res.json({ ok: true });
+}));
+
+// ----- New invoice: the owner bills a counter sale or a phone order -----
+const draftOf = b => ({
+  name: clean(b.name, 80), phone: clean(b.phone, 20), mode: b.mode === "online" ? "online" : "store", address: clean(b.address, 300),
+  lines: (Array.isArray(b.lines) ? b.lines : []).slice(0, 50).map(l => ({ id: String(l.id || "").slice(0, 40), qty: Math.floor(Number(l.qty) || 0) })),
+  discount: Math.max(0, Number(b.discount) || 0), gst: RATES.includes(Number(b.gst)) ? Number(b.gst) : 0, notes: clean(b.notes, 200),
+  pay: { status: ["paid", "partial", "unpaid"].includes((b.pay || {}).status) ? b.pay.status : "unpaid", method: PAY_METHODS.includes((b.pay || {}).method) ? b.pay.method : "UPI", amount: Math.max(0, Number((b.pay || {}).amount) || 0) },
+});
+app.post(m + "/invoices", auth, ownerOnly, h(async (req, res) => {
+  const b = draftOf(req.body), ref = store(req.params.slug);
+  if (b.phone && !/^[0-9+\-\s]{8,15}$/.test(b.phone)) throw new Bad("Enter a valid phone number.");
+  if (b.mode === "online" && (!b.phone || b.address.length < 8)) throw new Bad("For an online order, add the phone number and full delivery address.");
+  const want = new Map();
+  for (const l of b.lines) { if (!/^[A-Za-z0-9]{1,40}$/.test(l.id) || !(l.qty >= 1 && l.qty <= 999)) throw new Bad("Check the products and quantities."); want.set(l.id, (want.get(l.id) || 0) + l.qty); }
+  if (!want.size) throw new Bad("Add at least one product.");
+  const order = await db.runTransaction(async t => {
+    const ids = [...want.keys()], snaps = await Promise.all(ids.map(id => t.get(ref.collection("products").doc(id)))), st = await t.get(ref);
+    const lines = []; let subtotal = 0, cost = 0;
+    snaps.forEach((p, i) => {
+      if (!p.exists) throw new Bad("A product on this invoice no longer exists.");
+      const d = p.data(), q = want.get(ids[i]);
+      if (d.qty != null && d.qty < q) throw new Bad(d.qty > 0 ? `Only ${d.qty} left of ${d.name}.` : `${d.name} is out of stock.`);
+      lines.push({ id: p.id, name: lname(d), price: d.price, cost: d.cost || 0, qty: q, photo: (d.photos || [])[0] || "" });
+      subtotal += d.price * q; cost += (d.cost || 0) * q;
+    });
+    if (b.discount > subtotal) throw new Bad("The discount can’t be more than the subtotal.");
+    const taxable = subtotal - b.discount, gst = Math.round(taxable * b.gst / 100), total = taxable + gst;
+    let paid = 0, payments = [];
+    if (b.pay.status === "paid") paid = total; else if (b.pay.status === "partial") { if (!(b.pay.amount > 0 && b.pay.amount < total)) throw new Bad("For a part payment, enter an amount below the total."); paid = b.pay.amount; }
+    if (paid > 0) payments = [{ amount: paid, method: b.pay.method, at: new Date().toISOString() }];
+    const seq = (st.data().orderSeq || 1000) + 1, number = prefixOf(st.data().name) + "-" + seq;
+    snaps.forEach((p, i) => { if (p.data().qty != null) t.update(p.ref, { qty: p.data().qty - want.get(ids[i]) }); });
+    t.update(ref, { orderSeq: seq });
+    const o = { number, name: b.name || (b.mode === "store" ? "Walk-in customer" : ""), phone: b.phone, address: b.mode === "online" ? b.address : "", lines, subtotal, discount: b.discount, gstRate: b.gst, gst, total, cost, notes: b.notes,
+      status: b.mode === "store" ? "Delivered" : "Packed", paid, payments, seen: true, channel: b.mode }; // a counter sale is already handed over; an online one is ready to dispatch
+    t.set(ref.collection("orders").doc(number), { ...o, createdAt: stamp() });
+    return o;
+  });
+  res.json({ number: order.number, total: order.total, invKey: invSig(req.params.slug, order.number) });
+}));
+app.get(m + "/drafts", auth, ownerOnly, h(async (req, res) => {
+  const s = await sub(req, "drafts").orderBy("savedAt", "desc").get();
+  res.json(s.docs.map(d => ({ id: d.id, ...d.data().data, savedAt: d.data().savedAt ? d.data().savedAt.toDate().toISOString() : null })));
+}));
+app.post(m + "/drafts", auth, ownerOnly, h(async (req, res) => {
+  const ref = req.body.id && /^[A-Za-z0-9]{1,40}$/.test(String(req.body.id)) ? sub(req, "drafts").doc(String(req.body.id)) : sub(req, "drafts").doc();
+  await ref.set({ data: draftOf(req.body), savedAt: stamp() }); res.json({ id: ref.id });
+}));
+app.delete(m + "/drafts/:id", auth, ownerOnly, h(async (req, res) => { await sub(req, "drafts").doc(req.params.id).delete(); res.json({ ok: true }); }));
 
 // ----- products: each field is only changed if this person is allowed to change it -----
 async function fields(req, b) {
@@ -171,6 +272,7 @@ async function fields(req, b) {
     if (b.name !== undefined) { u.name = clean(b.name, 100); if (!u.name) throw new Bad("Enter a product name."); }
     if (b.description !== undefined) u.description = clean(b.description, 300);
     if (b.supplier !== undefined) u.supplier = clean(b.supplier, 80);
+    if (b.sku !== undefined) u.sku = clean(b.sku, 24).toUpperCase();
     if (b.mergeUnder !== undefined) u.mergeUnder = clean(b.mergeUnder, 40); // checked in checkMerge()
     if (b.kind !== undefined) u.kind = b.kind === "food" ? "food" : "general"; // colour+size, or flavour+weight
     if (b.o1 !== undefined) u.o1 = clean(b.o1, 40); // colour or flavour
@@ -212,6 +314,10 @@ app.post(m + "/products", auth, need("add"), h(async (req, res) => {
   const u = await fields(req, req.body);
   if (!u.name) throw new Bad("Enter a product name.");
   await checkMerge(req, null, u.mergeUnder);
+  if (!u.sku) { // no code typed: make the next one, SKU-0001, SKU-0002 ...
+    const n = await db.runTransaction(async t => { const st = await t.get(store(req.params.slug)), k = (st.data().skuSeq || 0) + 1; t.update(st.ref, { skuSeq: k }); return k; });
+    u.sku = "SKU-" + String(n).padStart(4, "0");
+  }
   const doc = { description: "", supplier: "", cost: 0, qty: 0, lowAt: 5, expiry: "", tags: [], photos: [], price: 0, active: false, ...u, createdAt: stamp() };
   checkLive(doc);
   const r = await sub(req, "products").add(doc); res.json({ id: r.id });
@@ -333,24 +439,20 @@ app.put(m + "/orders/:number/items", auth, ownerOnly, h(async (req, res) => {
     if (!orderSnap.exists) throw new Bad("Order not found.");
     const order = orderSnap.data();
     if (order.status !== "New") throw new Bad("Only new orders can be edited.");
+    if ((order.paid || 0) > 0) throw new Bad("This order already has a payment recorded. Set its payment to Unpaid first, then change the quantities.");
     const prior = order.lines || [];
     if ([...wanted.keys()].some(id => !prior.some(line => line.id === id))) throw new Bad("You can only change quantities for items already on this order.");
-    const productRefs = [...new Set(prior.map(line => line.id).filter(Boolean))].map(id => sub(req, "products").doc(id));
-    const products = await Promise.all(productRefs.map(r => t.get(r)));
+    const products = await Promise.all(prior.filter(l => l.id).map(l => t.get(sub(req, "products").doc(l.id))));
     const pmap = new Map(products.map(p => [p.id, p]));
     const updated = prior.filter(line => wanted.has(line.id)).map(line => ({ ...line, qty: wanted.get(line.id) }));
-    for (const line of updated) {
-      const p = pmap.get(line.id);
-      if (!p || !p.exists) throw new Bad("A product on this order no longer exists.");
+    // stock moves by the difference. An item taken off the order goes back into stock in full; a bigger quantity needs enough stock.
+    for (const line of prior) {
+      const p = pmap.get(line.id), diff = Number(line.qty || 0) - (wanted.get(line.id) || 0);
+      if (!p || !p.exists || p.data().qty == null || !diff) continue;
+      if (diff < 0 && p.data().qty < -diff) throw new Bad(`Only ${p.data().qty} more of ${line.name} in stock.`);
+      t.update(p.ref, { qty: Number(p.data().qty) + diff });
     }
-    const originalById = new Map(prior.map(line => [line.id, line]));
-    const nextTotal = updated.reduce((sum, line) => sum + Number(line.price || 0) * line.qty, 0);
-    const nextCost = updated.reduce((sum, line) => sum + Number(line.cost || 0) * line.qty, 0);
-    for (const line of updated) {
-      const product = pmap.get(line.id), oldQty = Number(originalById.get(line.id).qty || 0), diff = oldQty - line.qty;
-      if (product.data().qty != null && diff) t.update(product.ref, { qty: Math.max(0, Number(product.data().qty) + diff) });
-    }
-    t.update(ref, { lines: updated, total: nextTotal, cost: nextCost, seen: true });
+    t.update(ref, { lines: updated, total: updated.reduce((n, l) => n + Number(l.price || 0) * l.qty, 0), cost: updated.reduce((n, l) => n + Number(l.cost || 0) * l.qty, 0), seen: true });
   });
   res.json({ ok: true });
 }));
@@ -413,7 +515,9 @@ app.get("/api/invoice/:slug/:number", h(async (req, res) => {
     return { name: l.name, qty: l.qty, price: l.price, amount: l.price * l.qty, photo: ph ? `/api/photo/${req.params.slug}/${ph}` : "" };
   }));
   res.json({ store: s.data().name, number: d.number, date: d.createdAt ? d.createdAt.toDate().toISOString() : null, name: d.name, phone: d.phone, address: d.address,
-    lines, total: d.total, paid: d.paid || 0, due: Math.max(0, d.total - (d.paid || 0)), methods: (d.payments || []).map(p => p.method), status: d.status });
+    lines, subtotal: d.subtotal == null ? d.total : d.subtotal, discount: d.discount || 0, gstRate: d.gstRate || 0, gst: d.gst || 0, notes: d.notes || "", channel: d.channel || "online",
+    business: { address: (s.data().business || {}).address || "", gstin: (s.data().business || {}).gstin || "", phone: (s.data().business || {}).phone || "" },
+    total: d.total, paid: d.paid || 0, due: Math.max(0, d.total - (d.paid || 0)), methods: (d.payments || []).map(p => p.method), status: d.status });
 }));
 
 // ---------- pages ----------
