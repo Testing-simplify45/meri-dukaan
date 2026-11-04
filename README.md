@@ -77,6 +77,12 @@ Every order is saved and an email is sent to you.
 - **View all items:** order cards with more than 3 items show 3 and a purple **View all items** link that opens the full list in a popup.
 - **Sheets:** drag the little handle at the top of any bottom sheet down to close it (or tap outside it).
 
+## Editing, expiry, stock safety and cancelled invoices
+- **Edit an invoice:** owner only. Tap **Edit** on an order or on the Invoices list (also inside View order). You can change the customer, At store / Online, address, products and quantities, discount, GST and notes. Stock follows the change: removing items puts them back, adding items takes them out. Prices of items already on the invoice stay as they were; newly added items use today's price. Payments are changed with **Record payment**, and the new total can't be less than what is already paid. Cancelled invoices can't be edited.
+- **Expired items:** an item whose expiry date has passed (by Indian date; the expiry day itself is still sellable) is hidden from the online shop and blocked at checkout with a clear message, even if it is already in someone's cart. It stays on your Needs attention list. On New invoice and Edit invoice it shows an **Expired** tag and asks you to confirm before adding.
+- **Stock numbers stay right:** Edit product only sends the quantity if you changed it. If stock moved while the form was open (for example a customer bought something), the app says "Stock changed from 49 to 44 while you were editing" and saves nothing. **Adjust stock** now has two modes: **Add or remove** (+10 received, −2 damaged; added to the latest stock) and **Set exact count** (a recount, with the same warning if stock moved).
+- **Cancelled invoices:** the invoice page shows a large red CANCELLED with the date and "Nothing to pay". Share invoice and Reminder are hidden, and **Share cancellation** replaces them. If the customer had paid, it shows **Refund due**; tap **Record refund** once you have returned the money and it changes to **Refunded**. Links you sent earlier update too.
+
 ## Updating the app later
 1. Unzip the new zip file.
 2. Open your repository on GitHub, click **Add file → Upload files**, and drag in everything from the new folder, including the `public` folder. Files with the same names are replaced.
