@@ -4,9 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Manage store</title>
+<script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
-:root{color-scheme:light dark;--bg:#f8f9fb;--card:#fff;--ink:#1a2236;--mute:#667085;--line:#e8ebf2;--ac:#4f46e5;--ac2:#6d4be8;--on:#fff;--soft:#eef0ff;--ok:#0f8a5f;--okb:#e5f7ef;--wn:#a15c00;--wnb:#fff4dc;--er:#d12b3f;--erb:#fdebee;--in:#1d6fd1;--inb:#e8f2ff;--pk:#d6336c;--pkb:#ffeaf3;--dk:#11162b}
-@media(prefers-color-scheme:dark){:root{--bg:#0e1220;--card:#171c2e;--ink:#eceffa;--mute:#98a2ba;--line:#2a3150;--ac:#8c86ff;--ac2:#9a82ff;--on:#12103a;--soft:#241f55;--ok:#5fd6a6;--okb:#12362a;--wn:#f1c45b;--wnb:#3a2f10;--er:#ff9aa6;--erb:#43191f;--in:#8fbaff;--inb:#16294a;--pk:#ff8fb8;--pkb:#43192c;--dk:#0a0d1c}}
+:root{color-scheme:light dark;--bg:#f8fafc;--card:#fff;--ink:#1e293b;--mute:#64748b;--line:#e2e8f0;--ac:#4f46e5;--ac2:#7c3aed;--on:#fff;--soft:#eef2ff;--ok:#059669;--okb:#ecfdf5;--wn:#b45309;--wnb:#fffbeb;--er:#e11d48;--erb:#fff1f2;--in:#0284c7;--inb:#f0f9ff;--pk:#d6336c;--pkb:#ffeaf3;--dk:#0f172a;--hero:linear-gradient(125deg,#4f46e5 0%,#6d4be8 58%,#7c3aed 100%)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1220;--card:#171c2e;--ink:#eceffa;--mute:#98a2ba;--line:#2a3150;--ac:#8c86ff;--ac2:#9a82ff;--on:#12103a;--soft:#241f55;--ok:#5fd6a6;--okb:#12362a;--wn:#f1c45b;--wnb:#3a2f10;--er:#ff9aa6;--erb:#43191f;--in:#8fbaff;--inb:#16294a;--pk:#ff8fb8;--pkb:#43192c;--dk:#0a0d1c}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0e1220;--card:#171c2e;--ink:#eceffa;--mute:#98a2ba;--line:#2a3150;--ac:#8c86ff;--ac2:#9a82ff;--on:#12103a;--soft:#241f55;--ok:#5fd6a6;--okb:#12362a;--wn:#f1c45b;--wnb:#3a2f10;--er:#ff9aa6;--erb:#43191f;--in:#8fbaff;--inb:#16294a;--pk:#ff8fb8;--pkb:#43192c;--dk:#0a0d1c}
+:root[data-theme="light"]{color-scheme:light}
 *{box-sizing:border-box;touch-action:manipulation}[hidden]{display:none!important}html,body{max-width:100%;overflow-x:hidden}
 body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Inter,sans-serif;padding-top:env(safe-area-inset-top,0px);-webkit-tap-highlight-color:transparent}
 svg.i{width:22px;height:22px;flex:none;display:block}
@@ -28,7 +31,7 @@ h1{margin:0;font-size:1.45rem;font-weight:800;letter-spacing:-.3px}h2{font-size:
 .tile{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none}.tile svg.i{width:18px;height:18px}
 .seg{display:inline-flex;flex:none;border:1px solid var(--line);border-radius:13px;padding:3px;background:var(--card);gap:2px}
 .seg button{border:0;background:none;color:var(--mute);font-weight:600;padding:7px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;font-size:.86rem}.seg button.on{background:var(--soft);color:var(--ac)}
-.hero{position:relative;overflow:hidden;color:#fff;background:linear-gradient(125deg,#4d38df 0%,#6241e5 62%,#7548e9 100%);border-radius:20px;padding:16px 16px;margin:0 0 18px;box-shadow:0 10px 24px rgba(83,57,220,.22)}
+.hero{position:relative;overflow:hidden;color:#fff;background:var(--hero);border-radius:20px;padding:16px 16px;margin:0 0 18px;box-shadow:0 10px 24px rgba(83,57,220,.22)}
 .hero:before{content:"";position:absolute;width:210px;height:210px;border-radius:50%;right:-70px;top:-90px;background:rgba(255,255,255,.08)}.hero:after{content:"";position:absolute;width:190px;height:190px;border-radius:50%;right:-60px;bottom:-120px;background:rgba(255,255,255,.07)}
 .hero>*{position:relative}.hero small{display:block;opacity:.85}.hero .big{font-size:1.9rem;font-weight:800;margin:2px 0 12px;letter-spacing:-.5px;overflow-wrap:anywhere}.hero b{font-size:1.1rem}
 .hero .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hero .two div{background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:9px 12px;min-width:0}
@@ -49,7 +52,8 @@ h1{margin:0;font-size:1.45rem;font-weight:800;letter-spacing:-.3px}h2{font-size:
 .btn.g{background:var(--card);color:var(--ink);border:1px solid var(--line)}.btn.sm{padding:7px 12px;font-size:.84rem;border-radius:11px}.btn.red{color:var(--er)}.btn.wide{width:100%}.btn.cp{background:#fff;color:#1b2032;padding:8px 13px;border-radius:11px;font-size:.85rem}
 input,select,textarea{font:inherit;padding:10px 13px;border:1px solid var(--line);border-radius:13px;background:var(--bg);color:var(--ink);width:100%;margin:5px 0 12px}
 select{width:auto;margin:0}label{display:block;font-size:.84rem;color:var(--mute)}.ck{display:flex;gap:8px;align-items:center;color:var(--ink)}.ck input{width:auto;margin:0}
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.cap{font-size:.78rem;font-weight:800;letter-spacing:.8px;color:var(--mute);margin:0 0 10px;text-transform:uppercase}
+.fg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 12px}.fg>*{min-width:0}
+input[type=date]{min-width:0;max-width:100%;display:block;-webkit-appearance:none;appearance:none;text-align:left;min-height:44px}input[type=date]::-webkit-date-and-time-value{text-align:left}.cap{font-size:.78rem;font-weight:800;letter-spacing:.8px;color:var(--mute);margin:0 0 10px;text-transform:uppercase}
 .srch{position:relative;margin-bottom:14px}.srch svg.i{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--mute);width:18px;height:18px}.srch input{margin:0;padding:11px 13px 11px 42px;border-radius:14px;background:var(--card)}
 .chips{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;margin:0 -18px 12px;padding:0 18px;scrollbar-width:none;-ms-overflow-style:none}.chips::-webkit-scrollbar,.hs::-webkit-scrollbar{display:none;width:0;height:0}.chips button{flex:none;white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 15px;font-size:.88rem;font-weight:600;cursor:pointer}.chips button.on{background:var(--ac);border-color:var(--ac);color:var(--on)}
 .pr{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;margin-bottom:8px;cursor:pointer;width:100%;text-align:left;color:var(--ink)}.pr.crit{border-color:var(--er)}
@@ -68,7 +72,7 @@ select{width:auto;margin:0}label{display:block;font-size:.84rem;color:var(--mute
 .tri{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tri button,.pm button{border:1px solid var(--line);background:var(--card);border-radius:14px;padding:12px 6px;font-weight:650;color:var(--mute);cursor:pointer}.tri button.on{background:var(--okb);border-color:var(--ok);color:var(--ok)}.tri button.on.p{background:var(--wnb);border-color:var(--wn);color:var(--wn)}.tri button.on.u{background:var(--erb);border-color:var(--er);color:var(--er)}
 .pm{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 4px}.pm button.on{background:var(--soft);border-color:var(--ac);color:var(--ac)}
 .dash{width:100%;border:2px dashed var(--line);background:transparent;color:var(--ac);border-radius:14px;padding:11px;font-weight:650;display:flex;gap:8px;align-items:center;justify-content:center;cursor:pointer;margin-top:12px}
-.ph-row{display:flex;gap:10px;align-items:center}.pre{white-space:nowrap;display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:0 14px;margin:5px 0 12px;color:var(--mute)}
+.ph-row{display:flex;gap:10px;align-items:stretch}.pre{white-space:nowrap;display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:0 14px;margin:5px 0 12px;color:var(--mute)}
 .tl{display:flex;justify-content:space-between;padding:5px 0;color:var(--mute)}.tl.big{border-top:1px solid var(--line);margin-top:8px;padding-top:10px;color:var(--ink);font-weight:800;font-size:1.1rem}
 .fix{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--card);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:12px;justify-content:center}.fix>*{max-width:520px}.fix .btn{flex:1}.fix .btn.g{flex:0 0 36%}
 .back{display:flex;align-items:center;gap:14px;margin-bottom:18px}.back h1{font-size:1.3rem}
@@ -94,7 +98,7 @@ dialog{border:1px solid var(--line);border-radius:22px;background:var(--card);co
 @media(max-width:800px){
  #app{flex-direction:column}aside{display:none}.bn{display:flex}.dsk{display:none}
  main{padding:16px 18px calc(110px + env(safe-area-inset-bottom,0px))}
- input,select,textarea{font-size:16px}.fg{grid-template-columns:1fr}.fg.keep{grid-template-columns:1fr 1fr}
+ input,select,textarea{font-size:16px}.fg{grid-template-columns:1fr}.fg.keep{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
  dialog{width:100%;max-width:100%;margin:auto 0 0;border-radius:24px 24px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}.grab{display:block}
  dialog.pop{width:min(460px,92vw);max-width:92vw;margin:auto;border-radius:20px;padding:0}
  .fix{bottom:0}
@@ -104,7 +108,7 @@ dialog.pop{width:min(460px,92vw);height:75vh;max-height:75vh;padding:0;overflow:
 dialog.pop[open]{display:flex;flex-direction:column}
 .pop-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);flex:none}.pop-h h2{margin:0;font-size:1.05rem;min-width:0}.pop-b{padding:6px 16px 16px;overflow:auto;flex:1;min-height:0}
 .vall{background:none;border:0;padding:8px 0 2px;color:#7c3aed;font-weight:650;cursor:pointer;display:block;font-size:.88rem}
-@media(prefers-color-scheme:dark){.vall{color:#b79cff}}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .vall{color:#b79cff}}:root[data-theme="dark"] .vall{color:#b79cff}
 .imp td,.imp th{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);font-size:.82rem;vertical-align:top}.imp{width:100%;border-collapse:collapse}
 /* smooth motion: short and quiet, off for people who ask for less motion */
 :where(button,.pr,.pc,.at,.cr,.circ,.btn,.oi){transition:transform .12s ease,background-color .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease}
@@ -113,8 +117,7 @@ dialog.pop[open]{display:flex;flex-direction:column}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes sheetIn{from{transform:translateY(100%)}to{transform:none}}
 @keyframes popIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
-#view.fade{animation:fadeUp .22s ease both}
-#view.fade :where(.pr,.card,.oi,.at,.pc){animation:fadeIn .26s ease both}
+#view.fade{animation:fadeIn .16s ease both}
 dialog[open]{animation:popIn .2s ease}dialog[open]::backdrop{animation:fadeIn .22s ease both}
 dialog.closing{opacity:0;transform:translateY(16px);transition:transform .2s ease,opacity .2s ease}dialog.closing::backdrop{opacity:0;transition:opacity .2s ease}
 @media(max-width:800px){dialog[open]{animation:sheetIn .26s cubic-bezier(.2,.8,.2,1)}dialog.pop[open]{animation:popIn .2s ease}dialog.closing{transform:translateY(100%)}dialog.pop.closing{transform:scale(.97);opacity:0}}
@@ -222,6 +225,8 @@ async function login() {
 if (!slug) document.body.innerHTML = '<p style="padding:20px">Open this page from the list on your admin page.</p>';
 else if (key || tok) start().catch(() => { try { localStorage.removeItem(SK); } catch (e) {} key = ""; tok = ""; $("err").textContent = "Please log in again."; });
 const act = async f => { try { await f(); await load(); } catch (e) { alert(e.message); } draw(); };
+const theme = () => { try { const t = localStorage.getItem("theme"); return t == "light" || t == "dark" ? t : "auto"; } catch (e) { return "auto"; } };
+function setTheme(v) { try { v == "auto" ? localStorage.removeItem("theme") : localStorage.setItem("theme", v); } catch (e) {} if (v == "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", v); draw(); }
 const logout = () => { try { localStorage.removeItem(SK); } catch (e) {} sessionStorage.clear(); location.reload(); };
 const REDUCED = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
 const lowScreen = () => { try { return matchMedia("(max-width:800px)").matches; } catch (e) { return false; } };
@@ -284,16 +289,18 @@ const age = o => (Date.now() - new Date(o.createdAt)) / 864e5;
 const due = o => o.status == "Cancelled" ? 0 : Math.max(0, o.total - (o.paid || 0));
 const refundDue = o => o.status == "Cancelled" ? Math.max(0, (o.paid || 0) - (o.refunded || 0)) : 0;
 const refundBadge = o => refundDue(o) > 0 ? `<span class="bd er">Refund due ${inr(refundDue(o))}</span>` : (o.status == "Cancelled" && o.refunded > 0 ? `<span class="bd ok">Refunded ${inr(o.refunded)}</span>` : "");
-const waCancel = o => "https://wa.me/" + digits(o.phone) + "?text=" + encodeURIComponent(`Hello ${o.name}, your order ${o.number} from ${SN} has been cancelled.${refundDue(o) > 0 ? " We will return " + inr(refundDue(o)) + " to you." : (o.refunded > 0 ? " Your payment of " + inr(o.refunded) + " has been refunded." : " Nothing is due.")}`);
 const pst = o => o.status == "Cancelled" ? "Cancelled" : due(o) <= 0 ? "Paid" : o.paid > 0 ? "Partial" : age(o) > 7 ? "Overdue" : "Pending";
 const inR = o => range == "1" ? new Date(o.createdAt).toDateString() == new Date().toDateString() : age(o) <= +range;
 const inP = o => range == "1" ? new Date(o.createdAt).toDateString() == new Date(Date.now() - 864e5).toDateString() : (age(o) > +range && age(o) <= 2 * +range);
 const ago = iso => { if (!iso) return ""; const m = Math.round((Date.now() - new Date(iso)) / 6e4); if (m < 1) return "just now"; if (m < 60) return m + " min ago"; const h = Math.round(m / 60); if (h < 24) return h + " h ago"; return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" }); };
 const unseen = () => can("orders") ? O.filter(o => o.seen === false).length : 0;
 const digits = p => { let n = String(p || "").replace(/\D/g, ""); if (n.length == 10) n = "91" + n; return n; };
-const wa = o => "https://wa.me/" + digits(o.phone) + "?text=" + encodeURIComponent(`Hi ${o.name}, a gentle reminder about order ${o.number}: ${inr(due(o))} is still due. Thank you!`);
+const waTo = (o, parts) => "https://wa.me/" + digits(o.phone) + "?text=" + encodeURIComponent(parts.filter(Boolean).join("\n\n"));
+const hello = o => (o.name && o.name !== "Walk-in customer" && o.name !== "Customer") ? `Hello ${o.name}! 👋` : "Hello! 👋";
+const wa = o => waTo(o, [hello(o), `A gentle reminder from ${SN}! 🛍️`, `Payment of *${inr(due(o))}* for your order *${o.number}* is still pending.`, "Kindly complete the payment at your earliest convenience.", `Thank you for shopping with ${SN}! ❤️`]);
+const waCancel = o => waTo(o, [hello(o), `Your order *${o.number}* from ${SN} has been cancelled.`, refundDue(o) > 0 ? `We will return *${inr(refundDue(o))}* to you soon.` : o.refunded > 0 ? `Your payment of *${inr(o.refunded)}* has been refunded.` : "Nothing is due on this order.", `Thank you for shopping with ${SN}! ❤️`]);
 const invLink = o => `${location.origin}/invoice/${slug}/${o.number}?k=${o.invKey}`;
-const waInvoice = o => "https://wa.me/" + digits(o.phone) + "?text=" + encodeURIComponent(`Hello ${o.name}, thank you for your order from ${SN}. Your invoice for order ${o.number} (${inr(o.total)}) is here: ${invLink(o)}`);
+const waInvoice = o => waTo(o, [hello(o), `Thank you for shopping with ${SN}! 🛍️`, o.channel === "store" ? `Your purchase *${o.number}* worth *${inr(o.total)}* is complete.` : `Your order *${o.number}* worth *${inr(o.total)}* has been received.`, `You can view and download your invoice using the link below:\n📄 ${invLink(o)}`, `Thank you for choosing ${SN}! ❤️`]);
 const chan = o => o.channel === "store" ? `<span class="bd vi">${ic("store")} At store</span>` : `<span class="bd in">${ic("globe")} Online</span>`;
 const PAST = [["#eef0ff", "#4f46e5"], ["#fff4dc", "#d98200"], ["#e8f2ff", "#1d8fe0"], ["#e5f7ef", "#0f9d6b"], ["#ffeaf3", "#d6336c"], ["#fdebee", "#e0364d"]];
 const tileFor = (s, ico, cls) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 997; const [b, c] = PAST[h % PAST.length]; return `<div class="tile ${cls || ""}" style="background:${b};color:${c}">${ic(ico || "box")}</div>`; };
@@ -304,7 +311,7 @@ const back = () => go(lastTab && lastTab != "inv" && lastTab != "acct" ? lastTab
 const showOrders = f => { flt = f; if (owner()) orderTab = f == "New" ? "inprocess" : f == "Packed" ? "confirmed" : "all"; go("ord"); };
 function drawNav() {
   const dot = unseen() ? '<i class="dot"></i>' : "";
-  const items = [["dash", "Dashboard", "home"], ["prod", "Products", "box"]]; if (can("stock")) items.push(["inven", "Inventory", "layers"]); if (can("orders")) items.push(["ord", "Orders", "bag"]); if (owner()) items.push(["invs", "Invoices", "file"], ["inv", "New invoice", "plus"]);
+  const items = [["dash", "Dashboard", "home"], ["prod", "Products", "box"]]; if (can("stock")) items.push(["inven", "Inventory", "layers"]); if (can("orders")) items.push(["ord", "Orders", "bag"]); if (owner()) items.push(["invs", "Invoices", "file"], ["inv", "New sale", "plus"]);
   items.push(["sup", "Suppliers", "users"]); if (owner()) items.push(["tag", "Tags", "tag"], ["usr", "Staff", "key"]); items.push(["acct", "Account", "user"]);
   $("nav").innerHTML = items.map(([k, l, i]) => `<button class="${tab == k ? "on" : ""}" onclick="${k == "inv" ? "newInvoice()" : `go('${k}')`}">${ic(i)}${l}${k == "ord" ? dot : ""}</button>`).join("") + `<button onclick="logout()">${ic("out")}Log out</button>`;
   const tb = (k, i, l, d) => `<button class="${tab == k ? "on" : ""}" onclick="go('${k}')"><span class="ic2">${ic(i)}${d || ""}</span>${l}</button>`;
@@ -322,12 +329,12 @@ function topbar() {
     ord: () => title("Orders", "", `<button class="circ" onclick="showOq=!showOq;oq='';draw()" aria-label="Search orders">${ic("search")}</button>`),
     sup: () => title("Suppliers", "The people you buy stock from."), tag: () => title("Tags", "Each tag becomes a section on your online store."), usr: () => title("Staff", "People who help you run the store."),
     inven: () => title("Inventory", `${P.length} product${P.length == 1 ? "" : "s"} · ${sum(P, p => p.qty || 0)} units`),
-    invs: () => { const n = invsKind == "purchase" ? PU.length : O.filter(o => o.status != "Cancelled").length; return title("Invoices", `${n} ${invsKind == "purchase" ? "purchase" : "sales invoice"}${n == 1 ? "" : "s"}`, `<button class="circ" onclick="newInvoice(invsKind)" aria-label="New invoice">${ic("plus")}</button>`); },
-    inv: () => bk(INV && INV.editing ? "Edit invoice" : invKind == "purchase" ? "New purchase" : "New invoice", INV && INV.editing ? "#" + INV.editing : new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })), acct: () => bk("Account") }[tab]();
+    invs: () => { const n = invsKind == "purchase" ? PU.length : O.filter(o => o.status != "Cancelled").length; return title("Invoices", `${n} ${invsKind == "purchase" ? "purchase" : "sales invoice"}${n == 1 ? "" : "s"}`, `<button class="circ" onclick="newInvoice(invsKind)" aria-label="${invsKind == "purchase" ? "New purchase" : "New sale"}">${ic("plus")}</button>`); },
+    inv: () => bk(INV && INV.editing ? "Edit Sale" : invKind == "purchase" ? "New Purchase" : "New Sale", INV && INV.editing ? "#" + INV.editing : new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })), acct: () => bk("Account") }[tab]();
 }
 function fixbar() {
   if (tab == "inv" && INV && INV.editing) return `<div class="fix"><button class="btn g" onclick="back()">Cancel</button><button class="btn" onclick="saveInvoiceEdit()">${ic("check")} Save changes</button></div>`;
-  if (tab == "inv") return invKind == "purchase" ? `<div class="fix"><button class="btn g" onclick="savePurDraft()">Save draft</button><button class="btn" onclick="createPurchase()">${ic("layers")} Create purchase</button></div>` : `<div class="fix"><button class="btn g" onclick="saveDraft()">Save draft</button><button class="btn" onclick="createInvoice()">${ic("file")} Create invoice</button></div>`;
+  if (tab == "inv") return invKind == "purchase" ? `<div class="fix"><button class="btn g" onclick="savePurDraft()">Save draft</button><button class="btn" onclick="createPurchase()">${ic("layers")} Create purchase</button></div>` : `<div class="fix"><button class="btn g" onclick="saveDraft()">Save draft</button><button class="btn" onclick="createInvoice()">${ic("file")} Create sale</button></div>`;
   if (tab == "acct") return `<div class="fix"><button class="btn" style="max-width:520px" onclick="saveAccount()">Save changes</button></div>`;
   return "";
 }
@@ -335,14 +342,14 @@ function draw() {
   $("brand").textContent = SN; drawNav();
   $("topbar").innerHTML = topbar(); $("view").innerHTML = { dash: vDash, prod: vProd, ord: vOrd, sup: vSup, tag: vTag, usr: vUsr, inv: vInv, acct: vAcct, inven: vInven, invs: vInvs }[tab](); $("fixbar").innerHTML = fixbar();
   $("bn").hidden = tab == "inv" || tab == "acct";
-  const key = [tab, ivTab, orderTab, pcat, pfil, invf, ivf, flt, invKind, invsKind, range].join("|"), v = $("view");
-  if (lastKey && key !== lastKey && !REDUCED()) { v.classList.remove("fade"); void v.offsetWidth; v.classList.add("fade"); }
+  const key = tab, v = $("view"); // switches inside a screen (Today / 30 days, tabs, filters) just change in place, with no fade, so nothing blinks
+  if (lastKey && key !== lastKey && !REDUCED()) { v.classList.remove("fade"); void v.offsetWidth; v.classList.add("fade"); } else if (key === lastKey) v.classList.remove("fade");
   lastKey = key; glide();
 }
 function openCreate() {
   if (!owner()) return openProd();
   modal(`<h2 style="font-size:1.2rem">Create new</h2><button class="cr" onclick="closeM();openProd()"><div class="tile" style="background:#eef0ff;color:#4f46e5">${ic("box")}</div><div class="grow"><b>New product</b><span class="mute">Add to inventory &amp; online store</span></div>${ic("chev")}</button>
-  <button class="cr" onclick="closeM();newInvoice()"><div class="tile" style="background:#e5f7ef;color:#0f9d6b">${ic("file")}</div><div class="grow"><b>New invoice</b><span class="mute">Sales bill, or record a purchase</span></div>${ic("chev")}</button>`);
+  <button class="cr" onclick="closeM();newInvoice()"><div class="tile" style="background:#e5f7ef;color:#0f9d6b">${ic("file")}</div><div class="grow"><b>New sale</b><span class="mute">Bill a customer, or record a purchase</span></div>${ic("chev")}</button>`);
 }
 function openMore() {
   modal(`<h2 style="font-size:1.2rem">More</h2><div style="display:grid;gap:10px">
@@ -751,14 +758,14 @@ async function saveDraft() {
   catch (e) { alert(e.message); }
 }
 async function saveInvoiceEdit() {
-  if (!INV.lines.length) return alert("Keep at least one product on the invoice.");
+  if (!INV.lines.length) return alert("Keep at least one product on the sale.");
   const exp = INV.lines.filter(l => { const p = P.find(x => x.id == l.id); return !(l.orig) && p && daysTo(p) != null && daysTo(p) < 0; });
   if (exp.length && !confirm(`${exp.map(l => (P.find(x => x.id == l.id) || {}).name).join(", ")} ${exp.length == 1 ? "has" : "have"} expired. Add anyway?`)) return;
   const n = INV.editing, c = { name: INV.name, phone: INV.phone, mode: INV.mode, address: INV.address, lines: INV.lines.map(l => ({ id: l.id, qty: l.qty })), discount: INV.discount, gst: INV.gst, notes: INV.notes };
   try {
     const r = await api(base + "/invoices/" + n, "PUT", c); await load(); INV = null; tab = lastTab && lastTab != "inv" ? lastTab : "ord"; draw(); scrollTo(0, 0);
     const o = O.find(x => x.number == n) || { number: n, name: c.name, phone: c.phone, total: r.total, invKey: r.invKey };
-    modal(`<div style="text-align:center"><div class="tile" style="margin:0 auto 12px;background:var(--okb);color:var(--ok);width:56px;height:56px;border-radius:50%">${ic("check", 26)}</div><h2 style="font-size:1.25rem;margin:0">Invoice updated</h2><p class="mute">#${esc(n)} · ${inr(r.total)}<br>Stock was adjusted for any change.</p></div><div style="display:grid;gap:10px">${o.phone ? `<a class="btn" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">${ic("wa")} Send updated invoice</a>` : ""}<a class="btn g" target="_blank" rel="noopener" href="${esc(invLink(o))}">${ic("file")} View invoice</a><button class="btn g" onclick="closeM()">Done</button></div>`);
+    modal(`<div style="text-align:center"><div class="tile" style="margin:0 auto 12px;background:var(--okb);color:var(--ok);width:56px;height:56px;border-radius:50%">${ic("check", 26)}</div><h2 style="font-size:1.25rem;margin:0">Sale updated</h2><p class="mute">#${esc(n)} · ${inr(r.total)}<br>Stock was adjusted for any change.</p></div><div style="display:grid;gap:10px">${o.phone ? `<a class="btn" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">${ic("wa")} Send updated invoice</a>` : ""}<a class="btn g" target="_blank" rel="noopener" href="${esc(invLink(o))}">${ic("file")} View invoice</a><button class="btn g" onclick="closeM()">Done</button></div>`);
   } catch (e) { alert(e.message); }
 }
 async function createInvoice() {
@@ -770,8 +777,8 @@ async function createInvoice() {
     const r = await api(base + "/invoices", "POST", c);
     if (c.id) await api(base + "/drafts/" + c.id, "DELETE").catch(() => {});
     await load(); INV = null; orderTab = "all"; flt = "all"; tab = "ord"; draw();
-    const ob = { number: r.number, name: c.name || "Customer", phone: c.phone, total: r.total, invKey: r.invKey };
-    modal(`<div style="text-align:center"><div class="tile" style="margin:0 auto 12px;background:var(--okb);color:var(--ok);width:64px;height:64px;border-radius:50%">${ic("check", 30)}</div><h2 style="font-size:1.3rem;margin:0">Invoice created</h2><p class="mute">#${esc(r.number)} · ${inr(r.total)}</p></div>
+    const ob = { number: r.number, name: c.name || "Customer", phone: c.phone, total: r.total, invKey: r.invKey, channel: c.mode };
+    modal(`<div style="text-align:center"><div class="tile" style="margin:0 auto 12px;background:var(--okb);color:var(--ok);width:64px;height:64px;border-radius:50%">${ic("check", 30)}</div><h2 style="font-size:1.3rem;margin:0">Sale created</h2><p class="mute">#${esc(r.number)} · ${inr(r.total)}</p></div>
     <div style="display:grid;gap:10px">${c.phone ? `<a class="btn" target="_blank" rel="noopener" href="${esc(waInvoice(ob))}">${ic("wa")} Send on WhatsApp</a>` : ""}<a class="btn g" target="_blank" rel="noopener" href="${esc(invLink(ob))}">${ic("file")} View invoice</a><button class="btn g" onclick="closeM();newInvoice()">Create another</button><button class="btn g" onclick="closeM()">Done</button></div>`);
   } catch (e) { alert(e.message); }
 }
@@ -800,6 +807,7 @@ function vAcct() {
     <label>Full name<div class="field">${ic("user")}<input id="acn" value="${esc(nm)}" autocomplete="name"></div></label>
     <label>Email ID<div class="field">${ic("mail")}<input id="ace" type="email" value="${esc(pf.email)}" autocomplete="email"></div></label>${owner() ? '<div class="mute" style="margin:-6px 0 12px">New-order alerts are sent to this email.</div>' : ""}
     <label>Phone number<div class="ph-row"><div class="pre">+91</div><input id="acp" style="margin:5px 0 12px" inputmode="tel" value="${esc(pf.phone)}" autocomplete="tel"></div></label></div>
+  <div class="card"><div class="cap">Appearance</div><div class="seg" data-gl="theme" style="display:flex;width:100%">${[["light", "Light"], ["dark", "Dark"], ["auto", "Match phone"]].map(([v, l]) => `<button style="flex:1" class="${theme() == v ? "on" : ""}" onclick="setTheme('${v}')">${l}</button>`).join("")}</div><p class="mute" style="margin:10px 0 0">Saved on this phone. “Match phone” follows your phone’s own Light or Dark setting.</p></div>
   <div class="rows">${owner() ? `<button onclick="newKey()">${ic("key")}<span class="grow">Make a new store key</span>${ic("chev")}</button><button onclick="openBusiness()">${ic("building")}<span class="grow">Business details</span>${ic("chev")}</button>` : `<button onclick="openPassword()">${ic("lock")}<span class="grow">Change password</span>${ic("chev")}</button>`}<button class="red" onclick="logout()">${ic("out")}<span class="grow">Log out</span></button></div>`;
 }
 async function saveAccount() {
@@ -1021,7 +1029,7 @@ function vPurchase() {
   return `<div class="card"><div class="cap">Supplier</div>
     <label>Supplier<select style="width:100%;margin:5px 0 12px" onchange="PIN.supplier=this.value"><option value="">Choose a supplier</option>${S.map(s => `<option ${s.name == PIN.supplier ? "selected" : ""}>${esc(s.name)}</option>`).join("")}${PIN.supplier && !S.some(s => s.name == PIN.supplier) ? `<option selected>${esc(PIN.supplier)}</option>` : ""}</select></label>
     ${S.length ? "" : `<p class="mute" style="margin:-6px 0 10px">No suppliers yet. <button class="lnk" onclick="go('sup')">Add one under Suppliers</button></p>`}
-    <div class="fg keep"><label>Supplier bill no. (optional)<input value="${esc(PIN.billNo)}" oninput="PIN.billNo=this.value" autocomplete="off"></label><label>Date<input type="date" value="${esc(PIN.date)}" onchange="PIN.date=this.value"></label></div></div>
+    <div class="fg keep"><label>Bill no. (optional)<input value="${esc(PIN.billNo)}" oninput="PIN.billNo=this.value" autocomplete="off"></label><label>Date<input type="date" value="${esc(PIN.date)}" onchange="PIN.date=this.value"></label></div></div>
   <div class="card"><div class="cap">Products bought</div>${PIN.lines.map((l, i) => `<div style="padding:10px 0;border-top:${i ? "1px solid var(--line)" : "0"}"><div class="row nw" style="justify-content:space-between"><div style="min-width:0"><b>${esc(l.name)}</b>${l.id ? "" : ' <span class="bd wn">New · saved as draft</span>'}</div><button class="circ" style="width:34px;height:34px;border:0;color:var(--mute)" onclick="puDel(${i})" aria-label="Remove ${esc(l.name)}">${ic("trash")}</button></div>
       <div class="fg keep" style="margin-top:6px"><label>Quantity<input type="number" min="1" step="1" inputmode="numeric" value="${l.qty}" oninput="PIN.lines[${i}].qty=Math.floor(+this.value)||0;puRecalc()"></label><label>Purchase price (₹)<input type="number" min="0" step="any" inputmode="decimal" value="${l.cost}" oninput="PIN.lines[${i}].cost=+this.value||0;puRecalc()"></label></div><div class="mute" style="margin-top:-6px;text-align:right">Line total <b id="plt${i}" style="color:var(--ink)">${inr((+l.qty || 0) * (+l.cost || 0))}</b></div></div>`).join("") || '<p class="mute" style="margin:0">No products yet.</p>'}
     <button class="dash" onclick="openPuPicker()">${ic("plus")} Add product</button></div>

@@ -83,6 +83,12 @@ Every order is saved and an email is sent to you.
 - **Stock numbers stay right:** Edit product only sends the quantity if you changed it. If stock moved while the form was open (for example a customer bought something), the app says "Stock changed from 49 to 44 while you were editing" and saves nothing. **Adjust stock** now has two modes: **Add or remove** (+10 received, −2 damaged; added to the latest stock) and **Set exact count** (a recount, with the same warning if stock moved).
 - **Cancelled invoices:** the invoice page shows a large red CANCELLED with the date and "Nothing to pay". Share invoice and Reminder are hidden, and **Share cancellation** replaces them. If the customer had paid, it shows **Refund due**; tap **Record refund** once you have returned the money and it changes to **Refunded**. Links you sent earlier update too.
 
+## Look and feel, titles and WhatsApp messages
+- **Light / Dark:** open **Account → Appearance** and choose **Light**, **Dark** or **Match phone** (follows your phone's own setting). It is saved on that phone only. Customers see the shop and invoice in their own phone's setting.
+- **Smooth switching:** switching Today / 30 days / Year, the Orders and Inventory tabs, filters and the Purchase | Sales switch now changes the screen in place. Only moving to a different screen has a soft fade, and nothing flashes. If your phone is set to reduce motion, the animations are off.
+- **Names:** the sales screen is **New Sale** (and **Edit Sale** when editing), the purchase screen is **New Purchase**, and the button says **Create sale**. The **Invoices** tab keeps its name.
+- **WhatsApp messages:** the invoice, the payment reminder and the cancellation notice now use a tidy format with a greeting, the shop name, a bold order number and amount, and a plain tappable link on its own line. A reminder shows the amount still due. A counter sale says "Your purchase … is complete" and an online order says "has been received".
+
 ## Updating the app later
 1. Unzip the new zip file.
 2. Open your repository on GitHub, click **Add file → Upload files**, and drag in everything from the new folder, including the `public` folder. Files with the same names are replaced.
