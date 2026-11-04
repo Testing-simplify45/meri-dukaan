@@ -67,6 +67,16 @@ Every order is saved and an email is sent to you.
 - **Account:** photo, name, email, phone, Business details (address, GSTIN, phone, usual GST rate, shop name), and Change password for staff or **Make a new store key** for you. The owner's email here is where new-order alerts go.
 - **GST:** the app only does the sums you choose. Please check the rules with your accountant. Sales revenue on Home includes GST collected, and profit takes GST out.
 
+## Import, export and purchases
+- **Export / Import products:** on **Products**, tap the arrow-up button. **Export all products** downloads a CSV file you can open in Excel or Google Sheets. **Download blank template** gives just the column names. **Import from a file** shows a preview first (what is new, what is skipped, what is missing) and only saves when you tap **Import**.
+- **What an import needs:** only a **name**. A row with just a name comes in as a draft marked **Needs details**. Before a product can go live it needs a selling price, a purchase price, a quantity and at least one photo. This rule applies everywhere in the app, and products that need details show on Home under **Needs attention** (and under Products → Filter → Needs details).
+- **Import rules:** owner only, up to 500 rows at a time. A code (SKU) that already exists is skipped, unless you tick **Update products that already exist**. Categories that don't exist yet are created for you. Use `|` between several categories. **Merged under** can be a product code or a name. Dates can be `2026-12-31` or `31/12/2026`. Imported quantities show in the stock history as "Imported".
+- **Inventory tabs:** **Stock**, **Purchase** and **Sales** (Sales is the old History list).
+- **Purchases (owner only):** tap **+ → New invoice**, then choose **Purchase** at the top (Sales stays the default). Pick the supplier from your Suppliers list, add the supplier's bill number (optional), the date, the products with quantity and purchase price, the payment (Paid, Partial or Unpaid), discount and GST. **Create purchase** adds the stock and writes "Purchase PU-1001" in the stock history. By default each product's purchase price is updated to the new price (untick to keep the old one). A product typed by name that doesn't exist yet is added as a draft. **Save draft** keeps it under Inventory → Purchase.
+- **Purchase tab and Invoices:** purchase cards show the first 3 products, with **View all items** when there are more. The top shows Purchased, Paid and Owed to suppliers. Use **Record payment** when you pay a supplier later. Deleting a purchase asks whether to take its stock off again. **Invoices** has a Purchase | Sales switch too.
+- **View all items:** order cards with more than 3 items show 3 and a purple **View all items** link that opens the full list in a popup.
+- **Sheets:** drag the little handle at the top of any bottom sheet down to close it (or tap outside it).
+
 ## Updating the app later
 1. Unzip the new zip file.
 2. Open your repository on GitHub, click **Add file → Upload files**, and drag in everything from the new folder, including the `public` folder. Files with the same names are replaced.

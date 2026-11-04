@@ -13,7 +13,7 @@ const stamp = () => FV.serverTimestamp();
 const app = express();
 app.set("trust proxy", 1);
 const small = express.json({ limit: "100kb" }), big = express.json({ limit: "1mb" }); // photos are bigger than normal requests
-app.use((req, res, next) => (req.method === "POST" && /\/photos?$/.test(req.path) ? big : small)(req, res, next));
+app.use((req, res, next) => (req.method === "POST" && /\/(photos?|products-import)$/.test(req.path) ? big : small)(req, res, next));
 app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- helpers ----------
@@ -305,7 +305,9 @@ async function checkMerge(req, selfId, target) {
   if (selfId && (await sub(req, "products").where("mergeUnder", "==", selfId).get()).docs.length)
     throw new Bad("Other products are merged under this one, so it can’t be merged under another.");
 }
-const checkLive = d => { if (d.active && !(d.price > 0)) throw new Bad("Set a selling price before making a product live."); };
+// A product may only go live when the basics are filled in. Checked when it goes live, so older live products can still be edited.
+const missingOf = d => { const m = []; if (!d.name) m.push("name"); if (!(d.price > 0)) m.push("selling price"); if (d.cost == null || d.cost === "") m.push("purchase price"); if (d.qty == null) m.push("quantity"); if (!(d.photos || []).length) m.push("a photo"); return m; };
+const checkLive = (d, was) => { if (d.active && !(was && was.active)) { const m = missingOf(d); if (m.length) throw new Bad("Before it goes live, add: " + m.join(", ") + "."); } };
 
 app.get(m + "/products", auth, h(async (req, res) => {
   const s = await sub(req, "products").orderBy("createdAt", "desc").get();
@@ -330,7 +332,7 @@ app.put(m + "/products/:id", auth, need("add", "stock", "cost", "tags"), h(async
   if (!ex.exists) throw new Bad("Product not found.");
   const u = await fields(req, req.body);
   await checkMerge(req, req.params.id, u.mergeUnder);
-  checkLive({ ...ex.data(), ...u });
+  checkLive({ ...ex.data(), ...u }, ex.data());
   if (Object.keys(u).length) await ref.update(u);
   const oldQ = ex.data().qty == null ? 0 : ex.data().qty;
   if (u.qty !== undefined && u.qty !== oldQ) await sub(req, "stockLog").add(stockEntry(req, { id: ex.id, name: u.name || ex.data().name, sku: u.sku || ex.data().sku }, u.qty - oldQ, u.qty, clean(req.body.stockReason, 40) || "Stock changed", clean(req.body.stockNote, 100)));
@@ -384,6 +386,200 @@ app.post(m + "/tags/:id/move", auth, ownerOnly, h(async (req, res) => {
   if (i < 0 || j < 0 || j >= all.length) return res.json({ ok: true });
   const pi = all[i].data().pos, pj = all[j].data().pos; // read both first, then swap
   await Promise.all([all[i].ref.update({ pos: pj }), all[j].ref.update({ pos: pi })]); res.json({ ok: true });
+}));
+
+// ----- Products: import from a file (owner only) -----
+// The page reads the file and sends the rows here. "dryRun" only checks them (the preview); otherwise they are saved.
+const normDate = v => {
+  v = String(v || "").trim(); if (!v) return "";
+  let y, mo, d, m;
+  if ((m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) [y, mo, d] = [m[1], m[2], m[3]];
+  else if ((m = v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/))) [d, mo, y] = [m[1], m[2], m[3]];
+  else return null;
+  const dt = new Date(Date.UTC(+y, +mo - 1, +d));
+  if (dt.getUTCFullYear() != +y || dt.getUTCMonth() != +mo - 1 || dt.getUTCDate() != +d) return null;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+};
+const cell = (v, n) => { let t = String(v == null ? "" : v).trim().slice(0, n); if (/^'[=+\-@]/.test(t)) t = t.slice(1); return t; };
+const numCell = v => { const t = String(v == null ? "" : v).replace(/[₹,\s]/g, ""); if (t === "") return { blank: true }; const n = Number(t); return Number.isFinite(n) && n >= 0 ? { n } : { bad: true }; };
+const IMPORT_MAX = 500;
+app.post(m + "/products-import", auth, ownerOnly, h(async (req, res) => {
+  const rows = Array.isArray(req.body.rows) ? req.body.rows : [], update = !!req.body.update, dry = !!req.body.dryRun;
+  if (!rows.length) throw new Bad("The file has no rows.");
+  if (rows.length > IMPORT_MAX) throw new Bad(`The file has ${rows.length} rows. Please import ${IMPORT_MAX} or fewer at a time.`);
+  const existing = (await sub(req, "products").get()).docs, bySku = new Map(), byName = new Map();
+  existing.forEach(d => { const x = d.data(); if (x.sku) bySku.set(x.sku.toUpperCase(), d); if (x.name && !byName.has(x.name.toLowerCase())) byName.set(x.name.toLowerCase(), d); });
+  const known = (await sub(req, "tags").get()).docs, tagNames = new Map(known.map(d => [d.data().name.toLowerCase(), d.data().name]));
+  const seenSku = new Set(), out = [], work = [];
+  rows.forEach((r, i) => {
+    const line = i + 2, note = [], res1 = { line, name: cell(r.name, 100), status: "new", note: "", missing: [] };
+    out.push(res1);
+    if (!res1.name) { res1.status = "error"; res1.note = "No name, so this row was skipped."; return; }
+    const sku = cell(r.sku, 24).toUpperCase(), d = {};
+    if (sku && seenSku.has(sku)) { res1.status = "skip"; res1.note = `Code ${sku} appears twice in the file.`; return; }
+    if (sku) seenSku.add(sku);
+    const ex = sku ? bySku.get(sku) : null;
+    if (ex && !update) { res1.status = "skip"; res1.note = `Code ${sku} already exists.`; return; }
+    if (ex) res1.status = "update";
+    if (sku) d.sku = sku;
+    if (cell(r.description, 300)) d.description = cell(r.description, 300);
+    if (cell(r.supplier, 80)) d.supplier = cell(r.supplier, 80);
+    if (cell(r.o1, 40)) d.o1 = cell(r.o1, 40);
+    if (cell(r.o2, 40)) d.o2 = cell(r.o2, 40);
+    for (const [k, label, whole] of [["price", "selling price"], ["cost", "purchase price"], ["qty", "quantity", 1], ["lowAt", "low-stock alert", 1]]) {
+      const c = numCell(r[k]); if (c.bad || (whole && c.n != null && !Number.isInteger(c.n))) { note.push(`${label} “${cell(r[k], 20)}” isn’t a valid number, left blank`); continue; }
+      if (!c.blank) d[k] = c.n;
+    }
+    const ex1 = cell(r.expiry, 20);
+    if (ex1) { const e = normDate(ex1); if (e) d.expiry = e; else note.push(`expiry “${ex1}” isn’t a date (use 2026-12-31 or 31/12/2026), left blank`); }
+    d.tagNames = cell(r.category, 200).split(/[|;]/).map(x => x.trim()).filter(Boolean).slice(0, 10);
+    d.mergeRef = cell(r.mergedUnder, 100);
+    d.wantLive = /^(yes|y|true|1|live)$/i.test(cell(r.live, 10));
+    d.name = res1.name;
+    work.push({ res: res1, d, ex, note });
+  });
+  // work out what each product will look like, and what is still missing
+  const newTags = new Set();
+  work.forEach(w => {
+    w.d.tagNames = w.d.tagNames.map(t => { const k = tagNames.get(t.toLowerCase()); if (k) return k; newTags.add(t.slice(0, 30)); tagNames.set(t.toLowerCase(), t.slice(0, 30)); return t.slice(0, 30); });
+    const merged = { photos: [], ...(w.ex ? w.ex.data() : { cost: null, qty: null, price: 0 }), ...Object.fromEntries(Object.entries(w.d).filter(([k]) => ["name", "price", "cost", "qty"].includes(k))) };
+    w.after = merged; w.res.missing = missingOf(merged);
+    w.res.note = w.note.join("; ");
+    if (w.d.wantLive && w.res.missing.length) w.res.note += (w.res.note ? "; " : "") + "kept as a draft, still needs " + w.res.missing.join(", ");
+    if (!w.res.missing.length) w.res.missing = [];
+  });
+  const sum = { created: out.filter(o => o.status == "new").length, updated: out.filter(o => o.status == "update").length, skipped: out.filter(o => o.status == "skip" || o.status == "error").length, needDetails: work.filter(w => w.res.missing.length).length, newTags: [...newTags] };
+  if (dry) return res.json({ ...sum, rows: out, dryRun: true });
+  // ---- save ----
+  const ref = store(req.params.slug), ops = [];
+  const taken = new Set(bySku.keys()); work.forEach(w => { if (w.d.sku) taken.add(w.d.sku); });
+  let seq = (await ref.get()).data().skuSeq || 0;
+  const tagColl = sub(req, "tags"), maxPos = Math.max(Date.now(), ...known.map(d => d.data().pos || 0));
+  [...newTags].forEach((n, i) => ops.push(b => b.set(tagColl.doc(), { name: n, pos: maxPos + i + 1 })));
+  const ids = new Map(); // sku/name -> product id, for "merged under"
+  existing.forEach(d => { const x = d.data(); if (x.sku) ids.set(x.sku.toUpperCase(), d.id); });
+  work.forEach(w => {
+    const { d, ex } = w, docRef = ex ? ex.ref : sub(req, "products").doc(); w.id = docRef.id;
+    if (!ex && !d.sku) { do { seq++; d.sku = "SKU-" + String(seq).padStart(4, "0"); } while (taken.has(d.sku)); taken.add(d.sku); }
+    if (d.sku) ids.set(d.sku.toUpperCase(), docRef.id);
+    const clone = { ...d }; delete clone.tagNames; delete clone.mergeRef; delete clone.wantLive;
+    if (ex) {
+      const u = { ...clone }; delete u.sku; delete u.name;
+      if (d.name) u.name = d.name;
+      if (d.tagNames.length) u.tags = [...new Set([...(ex.data().tags || []), ...d.tagNames])];
+      if (d.wantLive && !w.res.missing.length) u.active = true;
+      ops.push(b => b.update(docRef, u));
+      if (u.qty !== undefined && u.qty !== (ex.data().qty == null ? 0 : ex.data().qty)) { const was = ex.data().qty == null ? 0 : ex.data().qty; ops.push(b => b.set(sub(req, "stockLog").doc(), stockEntry(req, { id: docRef.id, name: d.name, sku: ex.data().sku }, u.qty - was, u.qty, "Imported"))); }
+    } else {
+      const doc = { description: "", supplier: "", cost: null, qty: null, lowAt: 5, expiry: "", tags: d.tagNames, photos: [], price: 0, active: false, mergeUnder: "", kind: "general", ...clone, createdAt: stamp(), imported: true };
+      doc.active = !!(d.wantLive && !w.res.missing.length);
+      ops.push(b => b.set(docRef, doc));
+      if (doc.qty > 0) ops.push(b => b.set(sub(req, "stockLog").doc(), stockEntry(req, { id: docRef.id, name: d.name, sku: doc.sku }, doc.qty, doc.qty, "Imported")));
+    }
+  });
+  // merged under: by product code or by name, among the saved products and this file
+  const nameToId = new Map(); existing.forEach(d => { const k = (d.data().name || "").toLowerCase(); if (k && !nameToId.has(k)) nameToId.set(k, d.id); }); work.forEach(w => { const k = w.d.name.toLowerCase(); if (!nameToId.has(k)) nameToId.set(k, w.id); });
+  const parentOf = new Map(existing.map(d => [d.id, d.data().mergeUnder || ""])); const kidsOf = new Set(existing.map(d => d.data().mergeUnder).filter(Boolean));
+  work.forEach(w => {
+    if (!w.d.mergeRef) return;
+    const tid = ids.get(w.d.mergeRef.toUpperCase()) || nameToId.get(w.d.mergeRef.toLowerCase());
+    if (!tid || tid === w.id || parentOf.get(tid) || kidsOf.has(w.id)) { w.res.note += (w.res.note ? "; " : "") + `couldn’t merge under “${w.d.mergeRef}”`; return; }
+    parentOf.set(w.id, tid); kidsOf.add(tid);
+    ops.push(b => b.update(sub(req, "products").doc(w.id), { mergeUnder: tid }));
+  });
+  if (seq !== (await ref.get()).data().skuSeq) await ref.update({ skuSeq: seq });
+  for (let i = 0; i < ops.length; i += 400) { const b = db.batch(); ops.slice(i, i + 400).forEach(f => f(b)); await b.commit(); }
+  res.json({ ...sum, rows: out });
+}));
+
+// ----- Purchases: stock bought from a supplier (owner only) -----
+const purchaseOf = (b, today) => ({
+  supplier: clean(b.supplier, 80), billNo: clean(b.billNo, 40), date: /^\d{4}-\d{2}-\d{2}$/.test(b.date || "") ? b.date : today,
+  lines: (Array.isArray(b.lines) ? b.lines : []).slice(0, 100).map(l => ({ id: /^[A-Za-z0-9]{1,40}$/.test(String(l.id || "")) ? String(l.id) : "", name: clean(l.name, 100), qty: Math.floor(Number(l.qty) || 0), cost: Math.max(0, Number(l.cost) || 0) })),
+  discount: Math.max(0, Number(b.discount) || 0), gst: RATES.includes(Number(b.gst)) ? Number(b.gst) : 0, notes: clean(b.notes, 200), updateCost: b.updateCost !== false,
+  pay: { status: ["paid", "partial", "unpaid"].includes((b.pay || {}).status) ? b.pay.status : "unpaid", method: PAY_METHODS.includes((b.pay || {}).method) ? b.pay.method : "UPI", amount: Math.max(0, Number((b.pay || {}).amount) || 0) },
+});
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const puView = d => { const x = d.data(); return { ...x, createdAt: x.createdAt ? x.createdAt.toDate().toISOString() : null }; };
+app.get(m + "/purchases", auth, ownerOnly, h(async (req, res) => {
+  const s = await sub(req, "purchases").orderBy("createdAt", "desc").limit(300).get(); res.json(s.docs.map(puView));
+}));
+app.post(m + "/purchases", auth, ownerOnly, h(async (req, res) => {
+  const b = purchaseOf(req.body, todayStr()), ref = store(req.params.slug);
+  if (!b.supplier) throw new Bad("Choose the supplier.");
+  if (!b.lines.length) throw new Bad("Add at least one product.");
+  const want = new Map(); // one entry per product (id) or per new product (name)
+  for (const l of b.lines) {
+    if (!l.id && !l.name) throw new Bad("Every line needs a product.");
+    if (!(l.qty >= 1 && l.qty <= 99999)) throw new Bad("Check the quantities.");
+  }
+  const all = (await sub(req, "products").get()).docs, byName = new Map(all.map(d => [String(d.data().name).toLowerCase(), d.id]));
+  for (const l of b.lines) {
+    const id = l.id || byName.get(l.name.toLowerCase()) || "", key = id || "new:" + l.name.toLowerCase(), w = want.get(key);
+    if (w) { w.cost = (w.cost * w.qty + l.cost * l.qty) / (w.qty + l.qty); w.qty += l.qty; } else want.set(key, { id, name: l.name, qty: l.qty, cost: l.cost });
+  }
+  const items = [...want.values()];
+  const out = await db.runTransaction(async t => {
+    const st = await t.get(ref), snaps = await Promise.all(items.map(it => it.id ? t.get(sub(req, "products").doc(it.id)) : null));
+    const lines = []; let subtotal = 0, seqSku = st.data().skuSeq || 0, taken = new Set(all.map(d => String(d.data().sku || "").toUpperCase()));
+    const writes = [];
+    items.forEach((it, i) => {
+      const p = snaps[i];
+      if (it.id && !p.exists) throw new Bad("A product on this purchase no longer exists.");
+      subtotal += it.qty * it.cost;
+      if (p) {
+        const d = p.data(), after = (d.qty == null ? 0 : d.qty) + it.qty, u = { qty: after }; if (b.updateCost) u.cost = Math.round(it.cost * 100) / 100;
+        writes.push(() => t.update(p.ref, u));
+        lines.push({ id: p.id, name: d.name, sku: d.sku || "", qty: it.qty, cost: it.cost, isNew: false }); it.pid = p.id; it.after = after; it.sku = d.sku; it.pname = d.name;
+      } else {
+        do { seqSku++; it.sku = "SKU-" + String(seqSku).padStart(4, "0"); } while (taken.has(it.sku)); taken.add(it.sku);
+        const nref = sub(req, "products").doc(); it.pid = nref.id; it.after = it.qty; it.pname = it.name;
+        writes.push(() => t.set(nref, { name: it.name, description: "", supplier: b.supplier, sku: it.sku, cost: Math.round(it.cost * 100) / 100, qty: it.qty, lowAt: 5, expiry: "", tags: [], photos: [], price: 0, active: false, mergeUnder: "", kind: "general", createdAt: stamp(), imported: true }));
+        lines.push({ id: nref.id, name: it.name, sku: it.sku, qty: it.qty, cost: it.cost, isNew: true });
+      }
+    });
+    if (b.discount > subtotal) throw new Bad("The discount can’t be more than the subtotal.");
+    const taxable = subtotal - b.discount, gst = Math.round(taxable * b.gst / 100), total = taxable + gst;
+    let paid = 0, payments = [];
+    if (b.pay.status === "paid") paid = total; else if (b.pay.status === "partial") { if (!(b.pay.amount > 0 && b.pay.amount < total)) throw new Bad("For a part payment, enter an amount below the total."); paid = b.pay.amount; }
+    if (paid > 0) payments = [{ amount: paid, method: b.pay.method, at: new Date().toISOString() }];
+    const seq = (st.data().purSeq || 1000) + 1, number = "PU-" + seq;
+    writes.forEach(w => w());
+    items.forEach(it => t.set(sub(req, "stockLog").doc(), stockEntry(req, { id: it.pid, name: it.pname, sku: it.sku }, it.qty, it.after, "Purchase " + number)));
+    t.update(ref, { purSeq: seq, skuSeq: seqSku });
+    const p = { number, supplier: b.supplier, billNo: b.billNo, date: b.date, lines, subtotal, discount: b.discount, gstRate: b.gst, gst, total, notes: b.notes, paid, payments, createdBy: req.who.name };
+    t.set(sub(req, "purchases").doc(number), { ...p, createdAt: stamp() });
+    return p;
+  });
+  res.json({ number: out.number, total: out.total, newProducts: out.lines.filter(l => l.isNew).length });
+}));
+app.post(m + "/purchases/:number/payments", auth, ownerOnly, h(async (req, res) => {
+  const amount = Number(req.body.amount), method = req.body.method;
+  if (!(amount > 0) || !METHODS.includes(method)) throw new Bad("Enter an amount and a payment method.");
+  const pref = sub(req, "purchases").doc(req.params.number), p = await pref.get();
+  if (!p.exists) throw new Bad("Purchase not found.");
+  const d = p.data(), left = d.total - (d.paid || 0);
+  if (amount > left + 0.01) throw new Bad("That is more than the amount still owed (₹" + left + ").");
+  await pref.update({ paid: (d.paid || 0) + amount, payments: FV.arrayUnion({ amount, method, at: new Date().toISOString() }) });
+  res.json({ ok: true });
+}));
+// delete a purchase: choose whether the stock it added is taken off again. A copy is kept in "trash".
+app.delete(m + "/purchases/:number", auth, ownerOnly, h(async (req, res) => {
+  const pref = sub(req, "purchases").doc(req.params.number), reverse = req.query.reverse === "1";
+  await db.runTransaction(async t => {
+    const p = await t.get(pref); if (!p.exists) throw new Bad("Purchase not found.");
+    const d = p.data(), ls = reverse ? (d.lines || []).filter(l => l.id) : [];
+    const ps = await Promise.all(ls.map(l => t.get(sub(req, "products").doc(l.id))));
+    ps.forEach((x, i) => { if (x.exists && x.data().qty != null) { const take = Math.min(ls[i].qty, x.data().qty), after = x.data().qty - take; t.update(x.ref, { qty: after }); t.set(sub(req, "stockLog").doc(), stockEntry(req, { id: x.id, name: x.data().name, sku: x.data().sku }, -take, after, "Purchase " + req.params.number + " deleted")); } });
+    t.set(sub(req, "trash").doc(req.params.number), { ...d, kind: "purchase", deletedAt: stamp(), deletedBy: req.who.name, stockReversed: reverse });
+    t.delete(pref);
+  });
+  res.json({ ok: true });
+}));
+// purchase drafts are saved with the other drafts
+app.post(m + "/purchase-drafts", auth, ownerOnly, h(async (req, res) => {
+  const ref = req.body.id && /^[A-Za-z0-9]{1,40}$/.test(String(req.body.id)) ? sub(req, "drafts").doc(String(req.body.id)) : sub(req, "drafts").doc();
+  await ref.set({ data: { ...purchaseOf(req.body, todayStr()), kind: "purchase" }, savedAt: stamp() }); res.json({ id: ref.id });
 }));
 
 // ----- suppliers -----
