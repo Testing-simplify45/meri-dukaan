@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shop</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--card:#fff;--ink:#1c1c1c;--mute:#6b6f76;--line:#ececec;--soft:#f6f6f7;--ac:#e23744;--on:#fff;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#111214;--card:#1a1c1f;--ink:#f1f1f2;--mute:#9a9ea6;--line:#2b2e33;--soft:#202327;--ac:#ff5a67;--on:#2a0508;--err:#ff8a80}}
+*{box-sizing:border-box;touch-action:manipulation}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+.hd{background:linear-gradient(135deg,#e23744,#ff7a45);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 22px) 0 26px;border-radius:0 0 26px 26px}
+.hd small{opacity:.9}.hd h1{margin:2px 0 14px;font-size:1.7rem;letter-spacing:-.4px}
+.search{display:flex;align-items:center;gap:8px;background:#fff;color:#1c1c1c;border-radius:14px;padding:0 12px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.search input{flex:1;border:0;outline:0;background:transparent;font:inherit;color:inherit;padding:12px 0;min-width:0}
+.chips{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.chips .wrap{display:flex;gap:8px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+.chips button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer}
+h2{font-size:1.15rem;margin:22px 0 4px;scroll-margin-top:64px}
+.it{display:flex;gap:14px;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line)}
+.tx{flex:1;min-width:0}.tx b{display:block;margin-bottom:10px;cursor:pointer}.pr{font-weight:700;margin:0 0 8px}.tx .ds{cursor:pointer}.ds{color:var(--mute);font-size:.88rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.im{position:relative;flex:none;width:150px;padding-bottom:16px}
+.im .ph,.im img{width:150px;height:100px;aspect-ratio:3/2;object-fit:contain;border-radius:14px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:2.4rem;cursor:pointer}
+.im .n{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;font-size:.7rem;padding:1px 7px}
+.ctl{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.14);overflow:hidden;min-width:88px;justify-content:center}
+.ctl button{border:0;background:transparent;color:var(--ac);font:inherit;font-weight:800;padding:8px 14px;cursor:pointer;min-height:36px}
+.ctl span{font-weight:700;color:var(--ac);min-width:18px;text-align:center}.ctl .off{color:var(--mute);font-size:.8rem}
+#bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:696px;margin:0 auto;background:var(--ac);color:var(--on);border:0;border-radius:16px;padding:14px 18px;display:none;justify-content:space-between;align-items:center;font:inherit;font-weight:700;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.28)}
+button.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;background:var(--ac);color:var(--on);cursor:pointer}button.btn.g{background:transparent;color:var(--ink);border:1px solid var(--line)}button.btn:disabled{opacity:.5}
+.opt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}.opt span{font-size:.78rem;color:var(--mute);min-width:52px}
+.opt button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:4px 10px;font:inherit;font-size:.85rem;cursor:pointer}
+.opt button.on{border-color:var(--ac);color:var(--ac);font-weight:700;background:var(--soft)}.opt button.oos{text-decoration:line-through;opacity:.55}
+dialog{border:1px solid var(--line);border-radius:20px;background:var(--card);color:var(--ink);width:min(480px,94vw);padding:0;max-height:92vh;overflow:auto}dialog::backdrop{background:rgba(0,0,0,.55)}
+.pad{padding:18px}.car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;background:#fff}.car img,.car .ph{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:3/2;width:100%;object-fit:contain;background:#fff;display:grid;place-items:center;font-size:4rem}
+.cnt{text-align:center;color:var(--mute);font-size:.8rem;margin-top:6px}
+input,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--ink);margin:4px 0 10px}
+label{font-size:.85rem;color:var(--mute)}.line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0}
+.err{color:var(--err);min-height:1.2em;margin:0 0 8px}.empty{text-align:center;color:var(--mute);padding:50px 0}
+:focus-visible{outline:3px solid #f5b700;outline-offset:2px}
+</style>
+</head>
+<body>
+<header class="hd"><div class="wrap"><small>Order online</small><h1 id="name">Loading…</h1>
+  <label class="search"><span>🔍</span><input id="q" placeholder="Search products" oninput="draw()" aria-label="Search products"></label></div></header>
+<nav class="chips" id="chips"><div class="wrap" id="chipRow"></div></nav>
+<main class="wrap" id="sections"></main>
+<button id="bar" onclick="openCart()"><span id="sum"></span><span>View cart ›</span></button>
+<dialog id="pDlg"></dialog>
+<dialog id="cartDlg"><div class="pad" id="cartBody"></div></dialog>
+<dialog id="confirmDlg"><div class="pad"><h2 style="margin-top:0">Place this order?</h2><p id="confirmText"></p><p class="err" id="cerr"></p>
+  <div class="line"><button class="btn g" onclick="$('confirmDlg').close()">Go back</button><button class="btn" id="yes" onclick="send()">Yes, confirm order</button></div></div></dialog>
+<script>
+const slug = location.pathname.split("/")[2];
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let shop = { tags: [], products: [] }, cart = {}, info = { name: "", phone: "", address: "" }, openKey = null, sel = {}, defs = {};
+
+fetch("/api/store/" + slug).then(r => r.ok ? r.json() : Promise.reject())
+  .then(d => { shop = d; document.title = d.name; $("name").textContent = d.name; draw(); })
+  .catch(() => { $("name").textContent = "Store not found"; });
+
+const find = id => shop.products.find(p => p.id === id);
+const total = () => Object.entries(cart).reduce((t, [id, q]) => t + (find(id) ? find(id).price * q : 0), 0);
+const left = p => p.qty === null ? 99 : p.qty;
+const KIND = { general: ["Colour", "Size"], food: ["Flavour", "Weight"] };
+const sibs = p => shop.products.filter(x => x.group === p.group);        // everything merged under the same main product
+const curOf = key => find(sel[key]) || find(defs[key]);                  // the variant a listing is showing right now
+const label = p => { const o = [p.o1, p.o2].filter(Boolean); return o.length && !o.every(v => p.name.toLowerCase().includes(v.toLowerCase())) ? `${p.name} (${o.join(", ")})` : p.name; };
+
+// colour / size (or flavour / weight) buttons under a listing
+function optHtml(key, cur) {
+  const S = sibs(cur); if (S.length < 2) return "";
+  const L = KIND[S.some(x => x.kind == "food") ? "food" : "general"];
+  return [0, 1].map(i => {
+    const f = i ? "o2" : "o1", vals = [...new Set(S.map(x => x[f]).filter(Boolean))];
+    return vals.length ? `<div class="opt"><span>${L[i]}</span>${vals.map(v => `<button class="${cur[f] === v ? "on" : ""} ${S.filter(x => x[f] === v).every(x => left(x) <= 0) ? "oos" : ""}" data-v="${esc(v)}" onclick="event.stopPropagation();pick('${key}',${i},this.dataset.v)">${esc(v)}</button>`).join("")}</div>` : "";
+  }).join("");
+}
+function pick(key, i, v) {
+  const cur = curOf(key), S = sibs(cur), f = i ? "o2" : "o1", other = i ? "o1" : "o2";
+  const next = S.find(x => x[f] === v && x[other] === cur[other]) || S.find(x => x[f] === v);
+  if (next) sel[key] = next.id; draw();
+}
+
+const ctl = p => left(p) <= 0 ? '<div class="ctl"><button class="off" disabled>Sold out</button></div>'
+  : cart[p.id] ? `<div class="ctl"><button onclick="chg('${p.id}',-1)" aria-label="Remove one">−</button><span>${cart[p.id]}</span><button onclick="chg('${p.id}',1)" aria-label="Add one">+</button></div>`
+  : `<div class="ctl"><button onclick="chg('${p.id}',1)">ADD</button></div>`;
+
+function listing(key, p) {
+  defs[key] = p.id; const c = curOf(key);
+  return `<div class="it"><div class="tx"><b onclick="openP('${key}')">${esc(c.name)}</b><div class="pr">₹${c.price}</div>${optHtml(key, c)}<div class="ds" onclick="openP('${key}')">${esc(c.description)}</div></div>
+    <div class="im">${c.photos[0] ? `<img src="${esc(c.photos[0])}" alt="${esc(c.name)}" loading="lazy" onclick="openP('${key}')">` : `<div class="ph" onclick="openP('${key}')">🛍️</div>`}${c.photos.length > 1 ? `<span class="n">1/${c.photos.length}</span>` : ""}${ctl(c)}</div></div>`;
+}
+
+// browsing: one listing per group of merged products. searching: every matching product on its own
+function sections() {
+  const q = $("q").value.trim().toLowerCase();
+  if (q) {
+    const hits = shop.products.filter(p => [p.name, p.description, p.o1, p.o2].join(" ").toLowerCase().includes(q));
+    return hits.length ? [[hits.length + " result" + (hits.length == 1 ? "" : "s"), hits.map(p => ["p:" + p.id, p])]] : [];
+  }
+  const ord = [...shop.products].sort((a, b) => (a.group === a.id ? 0 : 1) - (b.group === b.id ? 0 : 1)); // main product first
+  const mk = pred => { const used = {}, out = []; ord.forEach(p => { if (used[p.group] || !pred(p)) return; used[p.group] = 1; out.push(["g:" + p.group, p]); }); return out; };
+  const g = shop.tags.map(t => [t, mk(p => p.tags.includes(t))]);
+  const rest = mk(p => !sibs(p).some(x => x.tags.some(t => shop.tags.includes(t))));
+  if (rest.length) g.push([shop.tags.length ? "More items" : "All items", rest]);
+  return g.filter(x => x[1].length);
+}
+
+function draw() {
+  const g = sections(), q = $("q").value.trim();
+  $("chips").style.display = q ? "none" : "";
+  $("chipRow").innerHTML = g.map(([t], i) => `<button onclick="document.getElementById('sec${i}').scrollIntoView({behavior:'smooth'})">${esc(t)}</button>`).join("");
+  $("sections").innerHTML = g.map(([t, ls], i) => `<h2 id="sec${i}">${esc(t)}</h2>` + ls.map(([k, p]) => listing(k, p)).join("")).join("")
+    || `<p class="empty">${shop.products.length ? "Nothing matches your search." : "No products yet."}</p>`;
+  const n = Object.values(cart).reduce((a, b) => a + b, 0);
+  $("bar").style.display = n ? "flex" : "none";
+  $("sum").textContent = n + " item" + (n > 1 ? "s" : "") + " · ₹" + total();
+  if ($("pDlg").open) renderP();
+}
+function chg(id, d) {
+  const p = find(id), c = (cart[id] || 0) + d;
+  if (d > 0 && c > left(p)) return;
+  c <= 0 ? delete cart[id] : cart[id] = c;
+  draw(); if ($("cartDlg").open) Object.keys(cart).length ? openCart() : $("cartDlg").close();
+}
+function openP(key) { openKey = key; renderP(); if (!$("pDlg").open) $("pDlg").showModal(); }
+function renderP() {
+  const p = curOf(openKey); if (!p) return;
+  $("pDlg").innerHTML = `<div class="car" onscroll="const c=this.parentNode.querySelector('.cnt');if(c)c.textContent=(Math.round(this.scrollLeft/this.clientWidth)+1)+' / ${p.photos.length}'">${p.photos.map(u => `<img src="${esc(u)}" alt="${esc(p.name)}">`).join("") || '<div class="ph">🛍️</div>'}</div>
+    ${p.photos.length > 1 ? `<div class="cnt">1 / ${p.photos.length} · swipe for more photos</div>` : ""}
+    <div class="pad"><h2 style="margin:0 0 8px">${esc(p.name)}</h2><div class="pr" style="font-size:1.2rem">₹${p.price}</div>${optHtml(openKey, p)}<p class="ds" style="-webkit-line-clamp:unset">${esc(p.description)}</p>
+    <div class="line"><button class="btn g" onclick="$('pDlg').close()">Close</button><div style="position:relative;width:130px;height:44px">${ctl(p).replace('class="ctl"', 'class="ctl" style="bottom:4px"')}</div></div></div>`;
+}
+function openCart() {
+  $("pDlg").close();
+  $("cartBody").innerHTML = '<h2 style="margin-top:0">Your cart</h2>' +
+    Object.entries(cart).map(([id, q]) => `<div class="line"><span>${esc(label(find(id)))}</span><span>₹${find(id).price * q} · <button class="btn g" style="padding:4px 10px" onclick="chg('${id}',-1)" aria-label="Remove one">−</button> ${q} <button class="btn g" style="padding:4px 10px" onclick="chg('${id}',1)" aria-label="Add one">+</button></span></div>`).join("") +
+    `<div class="line"><b>Total</b><b>₹${total()}</b></div>
+     <label>Your name<input value="${esc(info.name)}" oninput="info.name=this.value" autocomplete="name"></label>
+     <label>Phone number<input type="tel" value="${esc(info.phone)}" oninput="info.phone=this.value" autocomplete="tel"></label>
+     <label>Full delivery address<textarea rows="3" oninput="info.address=this.value" autocomplete="street-address">${esc(info.address)}</textarea></label>
+     <p class="err" id="err"></p>
+     <div class="line"><button class="btn g" onclick="$('cartDlg').close()">Keep shopping</button><button class="btn" onclick="review()">Place order</button></div>`;
+  if (!$("cartDlg").open) $("cartDlg").showModal();
+}
+function review() {
+  const i = info;
+  if (!i.name.trim() || !/^[0-9+\-\s]{8,15}$/.test(i.phone.trim()) || i.address.trim().length < 8) {
+    $("err").textContent = "Please fill in your name, a valid phone number and your full address."; return;
+  }
+  $("confirmText").textContent = `Total ₹${total()}. We will deliver to ${i.address.trim()} and call you on ${i.phone.trim()} to confirm.`;
+  $("cerr").textContent = ""; $("confirmDlg").showModal();
+}
+async function send() {
+  $("yes").disabled = true;
+  try {
+    const r = await fetch("/api/store/" + slug + "/orders", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...info, items: Object.entries(cart).map(([id, qty]) => ({ id, qty })) })
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Could not place the order.");
+    cart = {}; draw(); $("confirmDlg").close();
+    $("cartBody").innerHTML = `<h2 style="margin-top:0">Order placed ✅</h2><p>Your order number is <b>${esc(j.number)}</b>. We’ll call you on ${esc(info.phone)} to arrange delivery.</p><button class="btn" onclick="$('cartDlg').close()">Done</button>`;
+    fetch("/api/store/" + slug).then(r => r.json()).then(d => { shop = d; draw(); }); // refresh stock
+  } catch (e) { $("cerr").textContent = e.message; }
+  $("yes").disabled = false;
+}
+</script>
+</body>
+</html>
