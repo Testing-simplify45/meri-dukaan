@@ -9,6 +9,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
-    "firebase-admin": "^12.6.0"
+    "firebase-admin": "^12.6.0",
+    "nodemailer": "^10.3.1"
   }
 }

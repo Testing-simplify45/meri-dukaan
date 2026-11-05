@@ -21,25 +21,43 @@ Every order is saved and an email is sent to you.
 2. Open **Build → Firestore Database → Create database**. Choose **production mode** and a Mumbai location if offered.
 3. Open **Project settings → Service accounts → Generate new private key**. A small file downloads. Keep it private.
 
-### 3. Resend (sends the emails)
-1. Sign up at resend.com with the email where you want order alerts.
-2. Create an API key and copy it.
-3. Until you verify your own domain in Resend, it only delivers to the email you signed up with. Use that same email as `ADMIN_EMAIL`.
+### 3. Email (customers log in with a code, and everyone gets order emails)
+The shop sends email for three things: the **login code** customers type to sign in, **order alerts to you**, and **order updates to customers** (placed, out for delivery, delivered, cancelled). You need ONE of the two ways below. **Option A is the easiest and works for anyone, with no website domain.**
+
+**Option A: Gmail (free, recommended).** Best to use a Gmail made just for the shop, such as `cocoacorner.shop@gmail.com`.
+1. Sign in to that Gmail. Open myaccount.google.com → **Security** → turn on **2-Step Verification** (Google asks for it).
+2. In the search box at the top of that page, type **App passwords** and open it. Name it "Meri Dukaan" and click **Create**.
+3. Google shows a 16-letter password. Copy it (spaces don't matter).
+4. In Vercel, add two variables: `SMTP_USER` = the Gmail address, `SMTP_PASS` = the 16-letter password. Optional: `FROM_EMAIL` = `Cocoa Corner <that Gmail address>`.
+5. Gmail lets you send about 500 emails a day, which is plenty for a small shop.
+
+**Option B: Resend.** Sign up at resend.com and create an API key; add it as `RESEND_API_KEY`. Until you verify your own domain in Resend, it can only send to the email you signed up with, so customers would NOT get login codes. Use this only if you own a domain.
+
+**Where your order alerts go:** set `ADMIN_EMAIL` in Vercel to your own email. Customers can also log in only after email is set up; without email, customers can still order as guests.
 
 ### 4. Vercel (runs the website)
 1. Sign up at vercel.com using **Continue with GitHub**.
 2. Click **Add New → Project** and pick your repository.
-3. Before you click Deploy, open **Environment Variables** and add these four:
+3. Before you click Deploy, open **Environment Variables** and add these:
    - `FIREBASE_SERVICE_ACCOUNT`: open the downloaded Firebase file in Notepad, copy everything, paste it here.
    - `ADMIN_PASSWORD`: a long password only you know.
-   - `ADMIN_EMAIL`: your email, same as the Resend one.
-   - `RESEND_API_KEY`: the key from Resend.
+   - `ADMIN_EMAIL`: your email, where order alerts arrive.
+   - `SMTP_USER` and `SMTP_PASS`: the Gmail address and App password from step 3 (or `RESEND_API_KEY` if you chose Resend).
 4. Click **Deploy**. When it finishes, Vercel gives you a link such as `https://your-project.vercel.app`.
 
 ### 5. Try it
 1. Open `your-link/admin` and log in with your password.
 2. Create a store, open its manage page, and add a product.
-3. Open the shop link, place a test order, and check your email.
+3. In the manage page open **Account → Business details** and add your **phone** (this powers the WhatsApp button) and your **UPI ID** (this turns on the UPI option at checkout).
+4. Open the shop link, tap **Account → Log in**, get a code by email, and place a test order. Check your email, then change the order's delivery status in the manage page and watch the customer's Track order screen update.
+
+## The customer shop and how it links to the manage page
+- Customers browse Home, Categories and Search, open a product, add to cart and check out with **Cash or UPI**. The checkout says delivery charges will be added in the final invoice.
+- Every order lands in your **Orders** list with its payment method, email and note. When you mark an order **Packed**, **In transit**, **Delivered** or **Cancelled**, the customer's tracking steps move and they get an email.
+- Tracking steps: Order Placed → Payment Confirmed (Order Confirmed for cash) → Preparing → Ready for Dispatch → Out for Delivery → Delivered. Opening a new order in the manage page marks it confirmed.
+- Stock goes down when an order is placed and comes back if you cancel. Bestsellers come from real sales.
+- In a product, **Crossed-out price / MRP** shows a discount on the shop and **Featured** puts it on the home page.
+- Customers can review a delivered order; reviews show on the home page.
 
 ## Staff, tags and photos
 - **Logging in:** the manage page remembers you on that phone or computer until you tap **Log out**. Owners type their password or store key and leave **Username** empty. Staff type their username and password.
@@ -88,6 +106,13 @@ Every order is saved and an email is sent to you.
 - **Smooth switching:** switching Today / 30 days / Year, the Orders and Inventory tabs, filters and the Purchase | Sales switch now changes the screen in place. Only moving to a different screen has a soft fade, and nothing flashes. If your phone is set to reduce motion, the animations are off.
 - **Names:** the sales screen is **New Sale** (and **Edit Sale** when editing), the purchase screen is **New Purchase**, and the button says **Create sale**. The **Invoices** tab keeps its name.
 - **WhatsApp messages:** the invoice, the payment reminder and the cancellation notice now use a tidy format with a greeting, the shop name, a bold order number and amount, and a plain tappable link on its own line. A reminder shows the amount still due. A counter sale says "Your purchase … is complete" and an online order says "has been received".
+
+## Totals, big shops, and a few safety fixes
+- **Home numbers stay exact:** sales, profit, collected money, the % up or down, the order pipeline, money customers owe you and money you owe suppliers come from a small set of running totals (kept under each shop as `stats/totals`). Every time an order or purchase is made, edited, paid, cancelled, refunded or deleted, the totals change in the same save. The first time Home opens after this update, the app counts your existing orders once. If a number ever looks wrong, open **Account → Safety and totals → Recalculate totals**.
+- **Lists load a page at a time:** the Orders and Invoices screens show the newest 100 orders plus every order still open (new, to dispatch, in transit). **Load older orders** brings in the next 100. **Search every order** looks through all of them (it reads each order once, so use it when you really need an old one). The Unpaid views also fetch every unpaid order. Purchases work the same way.
+- **Most of one item per online order:** set it in **Account → Business details** (default 20). The shop page's + button stops there and tells the customer to contact you for more; the server uses the same limit. Orders you enter yourself, and quantity changes you make, can go higher.
+- **Purchase price:** a blank price is saved as empty (the product shows "Needs details" and cannot go live). Typing ₹0 asks "Is this item really free?". **Products → Filter → Purchase price missing** lists products with an empty or ₹0 price, and Home points to live ones. Old orders keep the cost they had when sold.
+- **Invoice links and the admin password:** invoice links and staff logins are signed with `SESSION_SECRET`, or with your admin password if that isn't set. Add a long random `SESSION_SECRET` under Vercel → Settings → Environment Variables and redeploy, **before** you send many invoices; after that you can change the admin password safely. (If you add it later, links already sent stop working once.) Account shows a reminder until it is set.
 
 ## Updating the app later
 1. Unzip the new zip file.

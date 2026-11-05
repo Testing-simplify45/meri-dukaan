@@ -199,7 +199,41 @@ async function api(p, method, body) {
   if (!r.ok) throw new Error(j.error || "Something went wrong");
   return j;
 }
-async function load() { SL = null; [P, S, T, O, U, DR, PU] = await Promise.all([api(base + "/products"), api(base + "/suppliers"), api(base + "/tags"), can("orders") ? api(base + "/orders") : [], owner() ? api(base + "/users") : [], owner() ? api(base + "/drafts") : [], owner() ? api(base + "/purchases") : []]); }
+// Orders and purchases arrive a page at a time (newest first, plus every order still open). Home's numbers come from SUM, which is exact however many orders there are.
+let SUM = null, OMORE = false, OCUR = null, PUMORE = false, PUCUR = null, OFULL = {};
+const byNew = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
+const mergeO = list => { const m = new Map(O.map(o => [o.number, o])); list.forEach(o => m.set(o.number, o)); O = [...m.values()].sort(byNew); };
+async function load() {
+  SL = null; OFULL = {};
+  const [p, s, t, o, u, d, pu, sm] = await Promise.all([api(base + "/products"), api(base + "/suppliers"), api(base + "/tags"), can("orders") ? api(base + "/orders") : { orders: [] }, owner() ? api(base + "/users") : [], owner() ? api(base + "/drafts") : [], owner() ? api(base + "/purchases") : { purchases: [] }, can("orders") ? api(base + "/summary").catch(() => null) : null]);
+  P = p; S = s; T = t; U = u; DR = d; SUM = sm;
+  O = o.orders; OMORE = !!o.more; OCUR = o.cursor || null; PU = pu.purchases; PUMORE = !!pu.more; PUCUR = pu.cursor || null;
+}
+async function loadMoreOrders(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "Loading…"; }
+  try { const r = await api(base + "/orders?before=" + encodeURIComponent(OCUR)); mergeO(r.orders); OMORE = !!r.more; OCUR = r.cursor || null; } catch (e) { alert(e.message); }
+  draw();
+}
+async function loadMorePu(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "Loading…"; }
+  try { const r = await api(base + "/purchases?before=" + encodeURIComponent(PUCUR)); const m = new Map(PU.map(x => [x.number, x])); r.purchases.forEach(x => m.set(x.number, x)); PU = [...m.values()].sort(byNew); PUMORE = !!r.more; PUCUR = r.cursor || null; } catch (e) { alert(e.message); }
+  draw();
+}
+async function searchOld(btn) { // looks through every order in the shop (reads them all once)
+  const q = (tab == "invs" ? invq : oq).trim(); if (!q) return;
+  if (btn) { btn.disabled = true; btn.textContent = "Searching…"; }
+  try { mergeO((await api(base + "/orders?q=" + encodeURIComponent(q))).orders); OFULL["q:" + q.toLowerCase()] = 1; } catch (e) { alert(e.message); }
+  draw();
+}
+async function ensureUnpaid() { // the Unpaid views need every unpaid order, old ones too
+  if (OFULL.unpaid || !OMORE) return;
+  try { mergeO((await api(base + "/orders?unpaid=1")).orders); OFULL.unpaid = 1; draw(); } catch (e) { alert(e.message); }
+}
+const moreFoot = q => {
+  q = (q || "").trim();
+  if (!OMORE) return "";
+  return `<div class="row" style="justify-content:center;gap:8px;margin:12px 0 4px;flex-wrap:wrap"><button class="btn g sm" onclick="loadMoreOrders(this)">Load older orders</button>${q.length >= 2 && !OFULL["q:" + q.toLowerCase()] ? `<button class="btn g sm" onclick="searchOld(this)">Search every order for “${esc(q)}”</button>` : ""}</div>`;
+};
 async function start() {
   ME = await api(base + "/me"); await load();
   if (owner() && ME.business) SN = ME.business.name || SN;
@@ -276,8 +310,9 @@ function glide() {
 setInterval(async () => {
   if (document.hidden || $("app").hidden || !can("orders")) return;
   try {
-    const n = await api(base + "/orders"), un = a => a.filter(o => o.seen === false).length, changed = n.length != O.length || un(n) != un(O);
-    O = n; if (changed) $("dlg").open ? drawNav() : draw();
+    const r = await api(base + "/orders"), un = a => a.filter(o => o.seen === false).length, was = O.length, wasUn = un(O), sig = JSON.stringify(O.map(o => [o.number, o.status]));
+    mergeO(r.orders); const changed = O.length != was || un(O) != wasUn || sig != JSON.stringify(O.map(o => [o.number, o.status]));
+    if (changed) { SUM = await api(base + "/summary").catch(() => SUM); $("dlg").open ? drawNav() : draw(); }
   } catch (e) {}
 }, 30000);
 
@@ -329,7 +364,7 @@ function topbar() {
     ord: () => title("Orders", "", `<button class="circ" onclick="showOq=!showOq;oq='';draw()" aria-label="Search orders">${ic("search")}</button>`),
     sup: () => title("Suppliers", "The people you buy stock from."), tag: () => title("Tags", "Each tag becomes a section on your online store."), usr: () => title("Staff", "People who help you run the store."),
     inven: () => title("Inventory", `${P.length} product${P.length == 1 ? "" : "s"} · ${sum(P, p => p.qty || 0)} units`),
-    invs: () => { const n = invsKind == "purchase" ? PU.length : O.filter(o => o.status != "Cancelled").length; return title("Invoices", `${n} ${invsKind == "purchase" ? "purchase" : "sales invoice"}${n == 1 ? "" : "s"}`, `<button class="circ" onclick="newInvoice(invsKind)" aria-label="${invsKind == "purchase" ? "New purchase" : "New sale"}">${ic("plus")}</button>`); },
+    invs: () => { const n = invsKind == "purchase" ? (SUM && SUM.purchases != null ? SUM.purchases : PU.length) : (SUM && SUM.orders != null ? SUM.orders - ((SUM.pipe || {}).Cancelled || 0) : O.filter(o => o.status != "Cancelled").length); return title("Invoices", `${n} ${invsKind == "purchase" ? "purchase" : "sales invoice"}${n == 1 ? "" : "s"}`, `<button class="circ" onclick="newInvoice(invsKind)" aria-label="${invsKind == "purchase" ? "New purchase" : "New sale"}">${ic("plus")}</button>`); },
     inv: () => bk(INV && INV.editing ? "Edit Sale" : invKind == "purchase" ? "New Purchase" : "New Sale", INV && INV.editing ? "#" + INV.editing : new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })), acct: () => bk("Account") }[tab]();
 }
 function fixbar() {
@@ -376,6 +411,12 @@ function renderSearch() {
   box.innerHTML = (ps.length ? `<div class="cap">Products</div>` + ps.map(p => `<button class="pr" onclick="closeM();openProdSheet('${p.id}')">${picOf(p)}<div class="grow" style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="mute">${esc(p.sku || "")}</div></div>${ic("chev")}</button>`).join("") : "")
     + (os.length ? `<div class="cap" style="margin-top:8px">Orders</div>` + os.map(o => `<button class="pr" onclick="closeM();viewOrder('${esc(o.number)}')"><div class="grow"><div class="nm">${esc(o.name)}</div><div class="mute">#${esc(o.number)} · ${ago(o.createdAt)}</div></div><span class="bd ${DB[o.status]}">${DL[o.status]}</span></button>`).join("") : "")
     || '<p class="mute">Nothing found.</p>';
+  if (can("orders") && OMORE && q.length >= 2 && !OFULL["q:" + q]) box.innerHTML += `<div class="row" style="justify-content:center;margin-top:10px"><button class="btn g sm" onclick="searchOldGlobal(this)">Search older orders too</button></div>`;
+}
+async function searchOldGlobal(btn) {
+  const q = ($("sq") ? $("sq").value : "").trim().toLowerCase(); if (!q) return; btn.disabled = true; btn.textContent = "Searching…";
+  try { mergeO((await api(base + "/orders?q=" + encodeURIComponent(q))).orders); OFULL["q:" + q] = 1; } catch (e) { alert(e.message); }
+  renderSearch();
 }
 
 // ----- store link (Home card) -----
@@ -437,12 +478,12 @@ const tileIc = (i, b, c) => `<div class="tile" style="background:${b};color:${c}
 
 // ----- Home -----
 function vDash() {
-  const A = alerts(), cnt = s => O.filter(o => o.status == s).length;
-  const nn = P.filter(p => !p.active && needs(p).length).length;
-  const att = `<div class="sh"><h2>Needs attention</h2>${A.length ? `<span class="bd er">${A.length}</span>` : ""}</div>` + (nn ? `<button class="lnk" style="margin:-2px 0 8px;display:block" onclick="pfil='need';pcat='All';go('prod')">${nn} product${nn == 1 ? " needs" : "s need"} details · see them</button>` : "") +
+  const A = alerts(), cnt = s => SUM && SUM.pipe ? (SUM.pipe[s] || 0) : O.filter(o => o.status == s).length;
+  const nn = P.filter(p => !p.active && needs(p).length).length, nc = owner() ? P.filter(p => p.active && (p.cost == null || p.cost === 0)).length : 0;
+  const att = `<div class="sh"><h2>Needs attention</h2>${A.length ? `<span class="bd er">${A.length}</span>` : ""}</div>` + (nn ? `<button class="lnk" style="margin:-2px 0 8px;display:block" onclick="pfil='need';pcat='All';go('prod')">${nn} product${nn == 1 ? " needs" : "s need"} details · see them</button>` : "") + (nc ? `<button class="lnk" style="margin:-2px 0 8px;display:block" onclick="pfil='nocost';pcat='All';go('prod')">${nc} live product${nc == 1 ? " has" : "s have"} no purchase price (profit looks too high) · see them</button>` : "") +
     (A.slice(0, 5).map(a => `<div class="at ${a.crit ? "crit" : ""}" role="button" tabindex="0" onclick="openProdSheet('${a.id}')">${tileIc(a.ico, a.c == "er" ? "var(--erb)" : "var(--wnb)", a.c == "er" ? "var(--er)" : "var(--wn)")}<div class="grow" style="min-width:0"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name)}</b><span class="mute">${esc(a.txt)}</span></div>${a.re && can("stock") ? `<button class="lnk" onclick="event.stopPropagation();reorder('${a.id}')">Reorder</button>` : `<span class="mute">${ic("chev")}</span>`}</div>`).join("") || '<div class="card mute">All good. Nothing needs attention.</div>');
   const pipe = `<div class="sh"><h2>Order pipeline</h2><span class="mute">Live</span></div><div class="pg">${[["cart", "New orders", "New", "#eef0ff", "#4f46e5"], ["box", "To dispatch", "Packed", "#fff4dc", "#d98200"], ["truck", "In transit", "In transit", "#e8f2ff", "#1d8fe0"], ["check", "Delivered", "Delivered", "#e5f7ef", "#0f9d6b"]].map(([i, l, st, b, c]) => `<button class="pc" onclick="showOrders('${st}')">${tileIc(i, b, c)}<div><b class="${fit(cnt(st))}">${cnt(st)}</b><em>${l}</em></div></button>`).join("")}</div>`;
-  const mg = (owner() || can("stock")) ? `<div class="sh"><h2>Manage</h2></div><div class="pg">${owner() ? `<button class="pc" onclick="go('invs')">${tileIc("file", "#eef0ff", "#4f46e5")}<div><b class="t">Invoices</b><em>${O.length} in all</em></div></button>` : ""}${can("stock") ? `<button class="pc" onclick="go('inven')">${tileIc("layers", "#fff4dc", "#d98200")}<div><b class="t">Inventory</b><em>${P.length} products</em></div></button>` : ""}</div>` : "";
+  const mg = (owner() || can("stock")) ? `<div class="sh"><h2>Manage</h2></div><div class="pg">${owner() ? `<button class="pc" onclick="go('invs')">${tileIc("file", "#eef0ff", "#4f46e5")}<div><b class="t">Invoices</b><em>${SUM && SUM.orders != null ? SUM.orders : O.length} in all</em></div></button>` : ""}${can("stock") ? `<button class="pc" onclick="go('inven')">${tileIc("layers", "#fff4dc", "#d98200")}<div><b class="t">Inventory</b><em>${P.length} products</em></div></button>` : ""}</div>` : "";
   const recent = `<div class="sh"><h2>Recent orders</h2><a href="#" onclick="showOrders('all');return false">View all</a></div>` +
     (O.length ? `<div class="grp">${O.slice(0, 5).map(o => `<div class="oi" onclick="viewOrder('${esc(o.number)}')"><div class="row nw" style="justify-content:space-between"><b style="font-size:1.05rem">${esc(o.name)}</b>${owner() ? `<b>${inr(o.total)}</b>` : ""}</div><div class="mute">#${esc(o.number)}</div><div class="row" style="margin-top:8px"><span class="bd ${DB[o.status]}">${DL[o.status]}</span>${owner() ? `<span class="bd ${PB[pst(o)]}">${pst(o)}</span>` : ""}</div></div>`).join("")}</div>` : '<div class="card mute">No orders yet. Share your store link to get the first one.</div>');
   const live = P.filter(p => p.active && (p.qty == null || p.qty > 0)).length, dr = P.filter(p => !p.active).length, oos = P.filter(p => p.active && p.qty === 0).length;
@@ -450,8 +491,9 @@ function vDash() {
   if (!owner()) return (can("add") ? `<button class="btn wide" style="margin-bottom:6px" onclick="openProd()">${ic("plus")} Add product</button>` : "") + att + mg + (can("orders") ? pipe + recent : "") + `<div class="store"><div class="row nw" style="justify-content:space-between"><b>${ic("store")} Online store</b></div>${stats}</div>`;
 
   const os = O.filter(o => o.status != "Cancelled" && inR(o)), pv = O.filter(o => o.status != "Cancelled" && inP(o));
-  const rev = sum(os, o => o.total), coll = sum(os, o => o.paid || 0), prof = sum(os, o => o.total - (o.gst || 0) - (o.cost || 0));
-  const before = sum(pv, o => o.total), gw = before ? Math.round((rev - before) * 100 / before) : null;
+  const R = SUM && SUM.ranges && SUM.ranges[range]; // exact running totals; adding up the loaded orders is only the fallback
+  const rev = R ? R.rev : sum(os, o => o.total), coll = R ? R.coll : sum(os, o => o.paid || 0), prof = R ? R.prof : sum(os, o => o.total - (o.gst || 0) - (o.cost || 0));
+  const before = R ? R.before : sum(pv, o => o.total), gw = before ? Math.round((rev - before) * 100 / before) : null;
   const lbl = { "1": "today", "30": "30 days", "365": "this year" }[range];
   const url = storeUrl().replace(/^https?:\/\//, "");
   return `<div class="row nw" style="justify-content:space-between;margin:0 0 14px"><h1 style="font-size:1.3rem;white-space:nowrap">Overview</h1><div class="seg" data-gl="range">${[["1", "Today"], ["30", "30 days"], ["365", "Year"]].map(([v, l]) => `<button class="${range == v ? "on" : ""}" onclick="range='${v}';draw()">${l}</button>`).join("")}</div></div>
@@ -471,7 +513,7 @@ function prodRow(p) {
 }
 function fOK(p) {
   const low = p.lowAt ?? 5, d = daysTo(p);
-  return { all: 1, low: p.qty != null && p.qty > 0 && p.qty <= low * 3, exp: d != null && d <= 30, oos: p.qty != null && p.qty <= 0, live: p.active, off: !p.active, need: !p.active && needs(p).length > 0 }[pfil];
+  return { all: 1, low: p.qty != null && p.qty > 0 && p.qty <= low * 3, exp: d != null && d <= 30, oos: p.qty != null && p.qty <= 0, live: p.active, off: !p.active, need: !p.active && needs(p).length > 0, nocost: p.cost == null || p.cost === 0 }[pfil];
 }
 function prodList() {
   const q = pq.trim().toLowerCase();
@@ -483,7 +525,7 @@ function vProd() {
   <div class="chips">${["All", ...T.map(t => t.name)].map(c => `<button class="${pcat == c ? "on" : ""}" data-c="${esc(c)}" onclick="pcat=this.dataset.c;draw()">${esc(c)}</button>`).join("")}</div><div id="plist">${prodList()}</div>`;
 }
 function openFilter() {
-  modal(`<h2 style="font-size:1.2rem">Filter products</h2><div style="display:grid;gap:8px">${[["all", "All products"], ["low", "Low on stock"], ["exp", "Expiring soon"], ["oos", "Out of stock"], ["live", "Live on the online store"], ["off", "Not on the online store"], ["need", "Needs details"]].map(([v, l]) => `<button class="btn g ${pfil == v ? "" : ""}" style="justify-content:space-between;${pfil == v ? "border-color:var(--ac);color:var(--ac)" : ""}" onclick="pfil='${v}';closeM();draw()">${l}${pfil == v ? ic("check") : ""}</button>`).join("")}</div>`);
+  modal(`<h2 style="font-size:1.2rem">Filter products</h2><div style="display:grid;gap:8px">${[["all", "All products"], ["low", "Low on stock"], ["exp", "Expiring soon"], ["oos", "Out of stock"], ["live", "Live on the online store"], ["off", "Not on the online store"], ["need", "Needs details"]].concat(owner() ? [["nocost", "Purchase price missing"]] : []).map(([v, l]) => `<button class="btn g ${pfil == v ? "" : ""}" style="justify-content:space-between;${pfil == v ? "border-color:var(--ac);color:var(--ac)" : ""}" onclick="pfil='${v}';closeM();draw()">${l}${pfil == v ? ic("check") : ""}</button>`).join("")}</div>`);
 }
 const fact = (l, v) => `<div style="background:var(--bg);border-radius:14px;padding:11px 13px"><div class="mute">${l}</div><b>${esc(v)}</b></div>`;
 const liveSheet = async (id, on) => { await act(() => api(base + "/products/" + id, "PUT", { active: on })); openProdSheet(id); };
@@ -538,6 +580,7 @@ function openProd(id) {
   <label>Product code (SKU, optional)<input name="sku" ${dis("add")} value="${esc(p.sku)}" placeholder="Made for you if left empty"></label>
   <div class="fg"><label>Purchase price (₹)<input name="cost" type="number" min="0" step="any" ${dis("cost")} value="${esc(p.cost)}"></label>
   <label>Selling price (₹)${owner() ? "" : " · set by owner"}<input name="price" type="number" min="0" step="any" ${owner() ? "required" : "disabled"} value="${esc(p.price || "")}"></label>
+  ${owner() ? `<label>Crossed-out price / MRP (₹, optional)<input name="mrp" type="number" min="0" step="any" value="${esc(p.mrp || "")}" placeholder="Shows a discount if higher than the selling price"></label>` : ""}
   <label>Quantity in stock<input name="qty" type="number" min="0" step="1" data-orig="${esc(p.qty)}" ${dis("stock")} ${can("stock") ? "required" : ""} value="${esc(p.qty)}"></label>
   <label>Alert when stock is this low<input name="lowAt" type="number" min="0" ${dis("stock")} value="${esc(p.lowAt)}"></label>
   <label>Expiry date (optional)<input name="expiry" type="date" ${dis("stock")} value="${esc(p.expiry)}"></label>
@@ -548,6 +591,7 @@ function openProd(id) {
   <div class="fg"><label>Variant type<select name="kind" ${dis("add")} onchange="kindChg(this)" style="width:100%;margin:4px 0 10px"><option value="general">Colour and size</option><option value="food" ${p.kind == "food" ? "selected" : ""}>Flavour and weight</option></select></label><span></span>
   <label><span id="l1">${p.kind == "food" ? "Flavour" : "Colour"}</span><input name="o1" ${dis("add")} value="${esc(p.o1)}"></label><label><span id="l2">${p.kind == "food" ? "Weight" : "Size"}</span><input name="o2" ${dis("add")} value="${esc(p.o2)}"></label></div>
   ${T.length ? `<label>Tags (optional)</label><div style="margin:6px 0 10px">${T.map(t => `<label class="tg"><input type="checkbox" name="tag" value="${esc(t.name)}" ${(p.tags || []).includes(t.name) ? "checked" : ""} ${dis("tags")}>${esc(t.name)}</label>`).join("")}</div>` : ""}
+  ${owner() ? `<label class="ck"><input type="checkbox" name="featured" ${p.featured ? "checked" : ""}> Show under “Featured” on the home page</label>` : ""}
   <label class="ck"><input type="checkbox" name="active" ${p.active ? "checked" : ""} ${owner() ? "" : "disabled"}> Live on the online store${owner() ? "" : " (owner only)"}</label>
   <div class="acts"><button type="button" class="btn g" onclick="closeM()">Cancel</button><button class="btn" id="sv">Save product</button></div></form>`);
 }
@@ -574,9 +618,15 @@ async function saveProd(e, id) {
   b.tags = [...f.querySelectorAll("input[name=tag]:checked")].map(x => x.value);
   const wantLive = owner() && f.elements.active.checked;
   if (owner()) b.active = wantLive; else delete b.active;
+  if (owner()) b.featured = f.elements.featured.checked; else { delete b.featured; delete b.mrp; }
   if (id && f.elements.qty && !f.elements.qty.disabled) { // only send the quantity if it was changed here, and say what it was when the form opened
     const orig = f.elements.qty.dataset.orig;
     if (String(b.qty) === String(orig)) delete b.qty; else b.expectedQty = orig === "" ? null : Number(orig);
+  }
+  if (b.cost !== undefined && b.cost !== "" && Number(b.cost) === 0) { // a blank price stays blank; a typed 0 must be confirmed
+    const was = id ? (P.find(x => x.id == id) || {}).cost : null;
+    if (was !== 0 && !confirm("The purchase price is ₹0. Is this item really free (for example a free sample)?\n\nIf you don't know the price yet, press Cancel and leave the box empty.")) return;
+    b.freeOk = true;
   }
   const files = f.elements.pf ? [...f.elements.pf.files].slice(0, 5) : [];
   $("sv").disabled = true; $("sv").textContent = files.length ? "Uploading…" : "Saving…";
@@ -614,7 +664,7 @@ function orderCard(o) {
   const items = o.lines.slice(0, 3).map(item).join("") + (o.lines.length > 3 ? `<button class="vall" onclick="event.stopPropagation();viewAll('${n}')">View all ${o.lines.length} items</button>` : "");
   return `<div class="card oe" onclick="seen('${n}')">${o.seen === false ? `<i class="dot big" id="d-${n}"></i>` : ""}
     <div class="oe-h"><div><b>${esc(o.name)}</b><div class="mute">#${n} · ${ago(o.createdAt)}${!own && o.phone ? " · " + esc(o.phone) : ""}</div></div>${chan(o)}</div>
-    ${o.address && o.channel != "store" ? `<div class="mute" style="margin-bottom:6px">${esc(o.address)}</div>` : ""}<div style="margin:4px 0 8px">${items}</div>
+    ${o.address && o.channel != "store" ? `<div class="mute" style="margin-bottom:6px">${esc(o.address)}</div>` : ""}${o.channel != "store" && (o.payMethod || o.email || o.contactEmail || o.note) ? `<div class="mute" style="margin-bottom:6px">${o.payMethod ? "Pays by " + esc(o.payMethod) : ""}${o.email || o.contactEmail ? " · " + esc(o.email || o.contactEmail) : ""}${o.note ? `<br>Note: ${esc(o.note)}` : ""}</div>` : ""}<div style="margin:4px 0 8px">${items}</div>
     ${own ? `<div class="tot" style="border-top:0;padding-top:0"><div><span class="mute">Total</span><br><b>${inr(o.total)}</b></div><div class="row" style="justify-content:flex-end"><span class="bd ${DB[o.status]}">${DL[o.status]}</span><span class="bd ${PB[ps]}">${ps}</span>${refundBadge(o)}</div></div>` : `<div class="row" style="margin:6px 0"><span class="bd ${DB[o.status]}">${DL[o.status]}</span></div>`}
     <div class="row nw" style="margin-top:10px;align-items:flex-end;gap:10px"><label class="grow">Delivery<select style="width:100%" ${cancelled ? "disabled" : ""} onclick="event.stopPropagation()" onchange="setStatus('${n}',this.value)">${stOpts.map(k => `<option value="${k}" ${o.status == k ? "selected" : ""}>${DL[k]}</option>`).join("")}</select></label>
       ${own ? `<label class="grow">Payment<select style="width:100%" ${cancelled ? "disabled" : ""} onclick="event.stopPropagation()" onchange="setPay('${n}',this.value)">${PO.map(([v, l]) => `<option value="${v}" ${payNow(o) == v ? "selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}</div>
@@ -645,14 +695,14 @@ function ordList() {
   if (q) L = L.filter(o => [o.number, o.name, o.phone].join(" ").toLowerCase().includes(q));
   const sd = DR.filter(d => d.kind !== "purchase");
   const drafts = own && orderTab === "all" && !q && flt == "all" && sd.length ? `<div class="cap">Drafts</div>` + sd.map(d => `<div class="card"><div class="row nw" style="justify-content:space-between"><div><b>${esc(d.name || "Draft invoice")}</b><div class="mute">${(d.lines || []).length} item${(d.lines || []).length == 1 ? "" : "s"} · saved ${ago(d.savedAt)}</div></div><div class="row nw"><button class="btn sm" onclick="openDraft('${d.id}')">Continue</button><button class="btn g sm" onclick="delDraft('${d.id}')" aria-label="Delete draft">${ic("trash")}</button></div></div></div>`).join("") + `<div class="cap" style="margin-top:6px">Orders</div>` : "";
-  return drafts + (L.map(o => own && orderTab === "inprocess" && o.status === "New" ? editOrderCard(o) : orderCard(o)).join("") || '<p class="mute" style="padding:18px 4px">No orders here yet.</p>');
+  return drafts + (L.map(o => own && orderTab === "inprocess" && o.status === "New" ? editOrderCard(o) : orderCard(o)).join("") || '<p class="mute" style="padding:18px 4px">No orders here yet.</p>') + (own && orderTab === "all" && flt != "unpaid" ? moreFoot(q) : "");
 }
 function vOrd() {
   const own = owner();
   const tabs = [["inprocess", "In-Process", O.filter(o => o.status === "New").length], ["confirmed", "Confirmed", O.filter(o => o.status === "Packed").length], ["all", "All", 0]];
   const head = own ? `<div class="ord-tabs" data-gl="ord">${tabs.map(([k, l, n]) => `<button class="${orderTab === k ? "on" : ""}" onclick="orderTab='${k}';flt='all';draw()">${l}${n ? `<span class="cnt">${n}</span>` : ""}</button>`).join("")}</div>
       <div class="intro">${ic("info")}<span>${orderTab === "inprocess" ? "New orders received. Edit item quantities, then confirm." : orderTab === "confirmed" ? "Confirmed orders are ready to dispatch." : "All orders, newest first."}</span></div>
-      ${orderTab === "all" ? `<div style="margin-bottom:12px"><label>Show <select onchange="flt=this.value;draw()">${[["all", "All orders"], ["New", "New"], ["Packed", "To dispatch"], ["In transit", "In transit"], ["Delivered", "Delivered"], ["Cancelled", "Cancelled"], ["unpaid", "Unpaid"]].map(([v, l]) => `<option value="${v}" ${flt == v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>` : ""}`
+      ${orderTab === "all" ? `<div style="margin-bottom:12px"><label>Show <select onchange="flt=this.value;draw();if(flt=='unpaid')ensureUnpaid()">${[["all", "All orders"], ["New", "New"], ["Packed", "To dispatch"], ["In transit", "In transit"], ["Delivered", "Delivered"], ["Cancelled", "Cancelled"], ["unpaid", "Unpaid"]].map(([v, l]) => `<option value="${v}" ${flt == v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>` : ""}`
     : `<div style="margin-bottom:12px"><label>Show <select onchange="flt=this.value;draw()">${[["all", "All my orders"], ...(ME.perms.orderView || []).map(s => [s, DL[s]])].map(([v, l]) => `<option value="${v}" ${flt == v ? "selected" : ""}>${l}</option>`).join("")}</select></label><p class="mute" style="margin:8px 0 0">You see new and in-process orders. Once an order is on its way, only the owner sees it.</p></div>`;
   return head + (showOq ? `<div class="srch"><input id="oqi" placeholder="Search by name, phone or order number" value="${esc(oq)}" oninput="oq=this.value;$('olist').innerHTML=ordList()" autocomplete="off"></div>` : "") + `<div id="olist">${ordList()}</div>`;
 }
@@ -807,9 +857,11 @@ function vAcct() {
     <label>Full name<div class="field">${ic("user")}<input id="acn" value="${esc(nm)}" autocomplete="name"></div></label>
     <label>Email ID<div class="field">${ic("mail")}<input id="ace" type="email" value="${esc(pf.email)}" autocomplete="email"></div></label>${owner() ? '<div class="mute" style="margin:-6px 0 12px">New-order alerts are sent to this email.</div>' : ""}
     <label>Phone number<div class="ph-row"><div class="pre">+91</div><input id="acp" style="margin:5px 0 12px" inputmode="tel" value="${esc(pf.phone)}" autocomplete="tel"></div></label></div>
+  ${owner() && SUM ? `<div class="card"><div class="cap">Safety and totals</div>${SUM.secretSet ? `<div class="intro">${ic("check")}<span>Invoice links and staff logins have their own private secret, so changing your admin password will not break them.</span></div>` : `<div class="intro" style="border-color:var(--wn)">${ic("info")}<span><b>Do this once:</b> invoice links and staff logins are currently locked with your admin password. If you ever change that password, every invoice link you already sent stops working and staff are logged out. Add a private <b>SESSION_SECRET</b> in Vercel to avoid that (the steps are in the README), ideally before you send many invoices.</span></div>`}<p class="mute" style="margin:10px 0 8px">Home's sales, profit and dues come from running totals kept as you work. If they ever look wrong, recount them from your orders.</p><button class="btn g wide" onclick="recalcTotals()">Recalculate totals</button></div>` : ""}
   <div class="card"><div class="cap">Appearance</div><div class="seg" data-gl="theme" style="display:flex;width:100%">${[["light", "Light"], ["dark", "Dark"], ["auto", "Match phone"]].map(([v, l]) => `<button style="flex:1" class="${theme() == v ? "on" : ""}" onclick="setTheme('${v}')">${l}</button>`).join("")}</div><p class="mute" style="margin:10px 0 0">Saved on this phone. “Match phone” follows your phone’s own Light or Dark setting.</p></div>
   <div class="rows">${owner() ? `<button onclick="newKey()">${ic("key")}<span class="grow">Make a new store key</span>${ic("chev")}</button><button onclick="openBusiness()">${ic("building")}<span class="grow">Business details</span>${ic("chev")}</button>` : `<button onclick="openPassword()">${ic("lock")}<span class="grow">Change password</span>${ic("chev")}</button>`}<button class="red" onclick="logout()">${ic("out")}<span class="grow">Log out</span></button></div>`;
 }
+const recalcTotals = () => act(async () => { await api(base + "/summary/rebuild", "POST"); alert("Totals recalculated."); });
 async function saveAccount() {
   try { await api(base + "/account", "PUT", { name: $("acn").value, email: $("ace").value, phone: $("acp").value }); ME = await api(base + "/me"); if (owner() && ME.business) SN = ME.business.name || SN; draw(); alert("Saved."); }
   catch (e) { alert(e.message); }
@@ -819,8 +871,10 @@ function openBusiness() {
   modal(`<form onsubmit="saveBusiness(event)"><h2 style="font-size:1.2rem">Business details</h2>
   <label>Business name<input name="name" required value="${esc(b.name || SN)}"></label><label>Address<input name="address" value="${esc(b.address)}"></label>
   <div class="fg keep"><label>GSTIN<input name="gstin" maxlength="15" value="${esc(b.gstin)}" style="text-transform:uppercase"></label><label>Phone<input name="phone" value="${esc(b.phone)}"></label></div>
+  <label>UPI ID for online payments (optional)<input name="upi" value="${esc(b.upi)}" placeholder="yourname@bank" autocapitalize="off" autocomplete="off"></label>
+  <label>Most of one item per online order<input name="maxQty" type="number" min="1" max="999" step="1" inputmode="numeric" value="${b.maxQty || 20}"></label>
   <label>Usual GST rate on invoices<select name="gstDefault" style="width:100%;margin:5px 0 12px">${[0, 5, 12, 18, 28].map(r => `<option value="${r}" ${(b.gstDefault || 0) == r ? "selected" : ""}>${r}%</option>`).join("")}</select></label>
-  <p class="mute">Your address, phone and GSTIN print on invoices. The app only does the sums you ask for, so please check the GST rules with your accountant.</p>
+  <p class="mute">Add your UPI ID to show a UPI option at checkout; without it, customers only see Cash. Customers can't add more than this many of one item to their cart; the shop page then asks them to contact you for bigger orders. Your address, phone and GSTIN print on invoices. The app only does the sums you ask for, so please check the GST rules with your accountant.</p>
   <div class="acts"><button type="button" class="btn g grow" onclick="closeM()">Cancel</button><button class="btn grow">Save</button></div></form>`);
 }
 async function saveBusiness(e) {
@@ -854,12 +908,13 @@ function invRows() {
   return O.filter(o => (invf == "cancelled" ? o.status == "Cancelled" : o.status != "Cancelled" && (invf == "all" || (invf == "unpaid" ? due(o) > 0 : due(o) <= 0))) && (!q || [o.number, o.name, o.phone].join(" ").toLowerCase().includes(q)));
 }
 function invListHtml() {
-  const L = invRows(), live = L.filter(o => o.status != "Cancelled"), billed = sum(live, o => o.total), coll = sum(live, o => o.paid || 0);
-  return `<div class="card" style="padding:14px"><div class="sm3"><div><span class="mute">Billed</span><b>${inr(billed)}</b></div><div><span class="mute">Collected</span><b style="color:var(--ok)">${inr(coll)}</b></div><div><span class="mute">Outstanding</span><b style="color:var(--er)">${inr(billed - coll)}</b></div></div></div>` +
+  const L = invRows(), live = L.filter(o => o.status != "Cancelled"), exact = SUM && SUM.all && !invq.trim() && (invf == "all" || invf == "unpaid");
+  const billed = exact ? SUM.all.billed : sum(live, o => o.total), coll = exact ? SUM.all.coll : sum(live, o => o.paid || 0), out = exact ? SUM.due : billed - coll;
+  return `<div class="card" style="padding:14px"><div class="sm3"><div><span class="mute">Billed</span><b>${inr(billed)}</b></div><div><span class="mute">Collected</span><b style="color:var(--ok)">${inr(coll)}</b></div><div><span class="mute">Outstanding</span><b style="color:var(--er)">${inr(out)}</b></div></div></div>` +
   (L.map(o => { const ps = pst(o), n = esc(o.number), cancelled = o.status == "Cancelled";
     return `<div class="card oe" style="padding:14px"><div class="oe-h" style="margin-bottom:8px"><div><b>#${n}</b><div class="mute">${esc(o.name)}${o.phone ? " · " + esc(o.phone) : ""}</div></div><div style="text-align:right"><b>${inr(o.total)}</b><div class="mute">${dateOf(o)}</div></div></div>
       <div class="row"><span class="bd ${PB[ps]}">${ps}</span>${refundBadge(o)}${chan(o)}${o.gst > 0 ? `<span class="bd nt">GST ${o.gstRate}%</span>` : ""}${o.discount > 0 ? `<span class="bd nt">Discount ${inr(o.discount)}</span>` : ""}</div>
-      <div class="acts">${cancelled ? "" : `<button class="btn g sm" onclick="editInvoice('${n}')">${ic("edit")} Edit</button>`}${refundDue(o) > 0 ? `<button class="btn sm" onclick="openRefund('${n}')">Record refund</button>` : ""}<a class="btn g sm" target="_blank" rel="noopener" href="${esc(invLink(o))}">${ic("file")} View</a>${o.phone ? (cancelled ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waCancel(o))}">${ic("wa")} Cancellation</a>` : `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">${ic("wa")} Share</a>`) : ""}${!cancelled && due(o) > 0 && o.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}">Remind</a>` : ""}<button class="btn g sm red" onclick="openDelete('${n}')" aria-label="Delete invoice ${n}">${ic("trash")} Delete</button></div></div>`; }).join("") || '<p class="mute" style="padding:12px 4px">No invoices here.</p>');
+      <div class="acts">${cancelled ? "" : `<button class="btn g sm" onclick="editInvoice('${n}')">${ic("edit")} Edit</button>`}${refundDue(o) > 0 ? `<button class="btn sm" onclick="openRefund('${n}')">Record refund</button>` : ""}<a class="btn g sm" target="_blank" rel="noopener" href="${esc(invLink(o))}">${ic("file")} View</a>${o.phone ? (cancelled ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waCancel(o))}">${ic("wa")} Cancellation</a>` : `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(waInvoice(o))}">${ic("wa")} Share</a>`) : ""}${!cancelled && due(o) > 0 && o.phone ? `<a class="btn g sm" target="_blank" rel="noopener" href="${esc(wa(o))}">Remind</a>` : ""}<button class="btn g sm red" onclick="openDelete('${n}')" aria-label="Delete invoice ${n}">${ic("trash")} Delete</button></div></div>`; }).join("") || '<p class="mute" style="padding:12px 4px">No invoices here.</p>') + (invf != "unpaid" ? moreFoot(invq) : "");
 }
 function setInvsKind(v) { invsKind = v; draw(); }
 function vInvs() {
@@ -867,7 +922,7 @@ function vInvs() {
   const sw = kindSwitch(invsKind, "setInvsKind", "invsk");
   if (invsKind == "purchase") return sw + purchaseBody();
   return sw + `<div class="srch">${ic("search")}<input placeholder="Search by number, name or phone" value="${esc(invq)}" oninput="invq=this.value;$('ivl2').innerHTML=invListHtml()" autocomplete="off"></div>
-  <div class="chips">${[["all", "All"], ["unpaid", "Unpaid"], ["paid", "Paid"], ["cancelled", "Cancelled"]].map(([v, l]) => `<button class="${invf == v ? "on" : ""}" onclick="invf='${v}';draw()">${l}</button>`).join("")}</div><div id="ivl2">${invListHtml()}</div>`;
+  <div class="chips">${[["all", "All"], ["unpaid", "Unpaid"], ["paid", "Paid"], ["cancelled", "Cancelled"]].map(([v, l]) => `<button class="${invf == v ? "on" : ""}" onclick="invf='${v}';draw();if(invf=='unpaid')ensureUnpaid()">${l}</button>`).join("")}</div><div id="ivl2">${invListHtml()}</div>`;
 }
 
 // ----- Inventory: stock levels, quick adjust, history -----
@@ -991,12 +1046,12 @@ function puCard(p) {
 }
 function puList() {
   const q = puq.trim().toLowerCase(), L = PU.filter(p => !q || [p.number, p.supplier, p.billNo].join(" ").toLowerCase().includes(q));
-  return L.map(puCard).join("") || '<p class="mute" style="padding:12px 4px">No purchases yet. Tap + and choose Purchase to add one.</p>';
+  return (L.map(puCard).join("") || '<p class="mute" style="padding:12px 4px">No purchases yet. Tap + and choose Purchase to add one.</p>') + (PUMORE ? '<div class="row" style="justify-content:center;margin:12px 0 4px"><button class="btn g sm" onclick="loadMorePu(this)">Load older purchases</button></div>' : "");
 }
 function purchaseBody() {
   if (!owner()) return '<p class="mute">Only the owner can see purchases.</p>';
-  const bought = sum(PU, p => p.total), paid = sum(PU, p => p.paid || 0), pd = DR.filter(d => d.kind === "purchase");
-  return `<div class="card" style="padding:12px"><div class="sm3"><div><span class="mute">Purchased</span><b>${inr(bought)}</b></div><div><span class="mute">Paid</span><b style="color:var(--ok)">${inr(paid)}</b></div><div><span class="mute">Owed to suppliers</span><b style="color:var(--er)">${inr(bought - paid)}</b></div></div></div>
+  const ex = SUM && SUM.supBought != null, bought = ex ? SUM.supBought : sum(PU, p => p.total), paid = ex ? SUM.supPaid : sum(PU, p => p.paid || 0), pd = DR.filter(d => d.kind === "purchase");
+  return `<div class="card" style="padding:12px"><div class="sm3"><div><span class="mute">Purchased</span><b>${inr(bought)}</b></div><div><span class="mute">Paid</span><b style="color:var(--ok)">${inr(paid)}</b></div><div><span class="mute">Owed to suppliers</span><b style="color:var(--er)">${inr(ex ? SUM.supDue : bought - paid)}</b></div></div></div>
   <div class="srch">${ic("search")}<input placeholder="Search by number, supplier or bill" value="${esc(puq)}" oninput="puq=this.value;$('pul').innerHTML=puList()" autocomplete="off"></div>
   ${pd.length ? `<div class="cap">Drafts</div>` + pd.map(d => `<div class="card"><div class="row nw" style="justify-content:space-between"><div style="min-width:0"><b>${esc(d.supplier || "Draft purchase")}</b><div class="mute">${(d.lines || []).length} item${(d.lines || []).length == 1 ? "" : "s"} · saved ${ago(d.savedAt)}</div></div><div class="row nw"><button class="btn sm" onclick="openPurDraft('${d.id}')">Continue</button><button class="btn g sm" onclick="delDraft('${d.id}')" aria-label="Delete draft">${ic("trash")}</button></div></div></div>`).join("") + `<div class="cap" style="margin-top:6px">Purchases</div>` : ""}
   <div id="pul">${puList()}</div>`;

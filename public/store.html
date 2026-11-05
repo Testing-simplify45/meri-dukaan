@@ -4,170 +4,325 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:light dark;--bg:#fff;--card:#fff;--ink:#1c1c1c;--mute:#6b6f76;--line:#ececec;--soft:#f6f6f7;--ac:#e23744;--on:#fff;--err:#b3261e}
-@media(prefers-color-scheme:dark){:root{--bg:#111214;--card:#1a1c1f;--ink:#f1f1f2;--mute:#9a9ea6;--line:#2b2e33;--soft:#202327;--ac:#ff5a67;--on:#2a0508;--err:#ff8a80}}
-*{box-sizing:border-box;touch-action:manipulation}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
-.wrap{max-width:720px;margin:0 auto;padding:0 16px}
-.hd{background:linear-gradient(135deg,#e23744,#ff7a45);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 22px) 0 26px;border-radius:0 0 26px 26px}
-.hd small{opacity:.9}.hd h1{margin:2px 0 14px;font-size:1.7rem;letter-spacing:-.4px}
-.search{display:flex;align-items:center;gap:8px;background:#fff;color:#1c1c1c;border-radius:14px;padding:0 12px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
-.search input{flex:1;border:0;outline:0;background:transparent;font:inherit;color:inherit;padding:12px 0;min-width:0}
-.chips{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
-.chips .wrap{display:flex;gap:8px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
-.chips button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer}
-h2{font-size:1.15rem;margin:22px 0 4px;scroll-margin-top:64px}
-.it{display:flex;gap:14px;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line)}
-.tx{flex:1;min-width:0}.tx b{display:block;margin-bottom:10px;cursor:pointer}.pr{font-weight:700;margin:0 0 8px}.tx .ds{cursor:pointer}.ds{color:var(--mute);font-size:.88rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.im{position:relative;flex:none;width:150px;padding-bottom:16px}
-.im .ph,.im img{width:150px;height:100px;aspect-ratio:3/2;object-fit:contain;border-radius:14px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;font-size:2.4rem;cursor:pointer}
-.im .n{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;font-size:.7rem;padding:1px 7px}
-.ctl{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:flex;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.14);overflow:hidden;min-width:88px;justify-content:center}
-.ctl button{border:0;background:transparent;color:var(--ac);font:inherit;font-weight:800;padding:8px 14px;cursor:pointer;min-height:36px}
-.ctl span{font-weight:700;color:var(--ac);min-width:18px;text-align:center}.ctl .off{color:var(--mute);font-size:.8rem}
-#bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:696px;margin:0 auto;background:var(--ac);color:var(--on);border:0;border-radius:16px;padding:14px 18px;display:none;justify-content:space-between;align-items:center;font:inherit;font-weight:700;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.28)}
-button.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 16px;background:var(--ac);color:var(--on);cursor:pointer}button.btn.g{background:transparent;color:var(--ink);border:1px solid var(--line)}button.btn:disabled{opacity:.5}
-.opt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}.opt span{font-size:.78rem;color:var(--mute);min-width:52px}
-.opt button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:4px 10px;font:inherit;font-size:.85rem;cursor:pointer}
-.opt button.on{border-color:var(--ac);color:var(--ac);font-weight:700;background:var(--soft)}.opt button.oos{text-decoration:line-through;opacity:.55}
-dialog{border:1px solid var(--line);border-radius:20px;background:var(--card);color:var(--ink);width:min(480px,94vw);padding:0;max-height:92vh;overflow:auto}dialog::backdrop{background:rgba(0,0,0,.55)}
-.pad{padding:18px}.car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;background:#fff}.car img,.car .ph{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:3/2;width:100%;object-fit:contain;background:#fff;display:grid;place-items:center;font-size:4rem}
-.cnt{text-align:center;color:var(--mute);font-size:.8rem;margin-top:6px}
-input,textarea{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--ink);margin:4px 0 10px}
-label{font-size:.85rem;color:var(--mute)}.line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0}
-.err{color:var(--err);min-height:1.2em;margin:0 0 8px}.empty{text-align:center;color:var(--mute);padding:50px 0}
-:focus-visible{outline:3px solid #f5b700;outline-offset:2px}
+:root{color-scheme:light;--pu:#4A1B7A;--pu2:#6B2FA8;--pl:#F1E8FA;--ye:#FFC72C;--yl:#FFF4CC;--bg:#FBF8FE;--ink:#2A1740;--mute:#6F6482;--line:#E6DCF2;--card:#fff;--ok:#1E8E4E;--err:#B3261E}
+*{box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.4 Nunito,system-ui,sans-serif;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+button{font:inherit;cursor:pointer}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px}
+.top{position:sticky;top:0;z-index:10;background:var(--pu);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 10px) 0 10px}
+.top .wrap{display:flex;align-items:center;gap:8px}
+.top h1{flex:1;margin:0;font-size:1.25rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{position:relative;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:1.15rem;display:grid;place-items:center}
+.ib i{position:absolute;top:2px;right:2px;min-width:18px;height:18px;border-radius:9px;background:var(--ye);color:var(--pu);font:800 .7rem/18px Nunito;text-align:center;font-style:normal;padding:0 4px}
+.bk{border:0;background:rgba(255,255,255,.14);color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.3rem}
+.ban{margin:14px 0;border-radius:24px;background:linear-gradient(135deg,var(--pu),var(--pu2));color:#fff;padding:22px 20px;position:relative;overflow:hidden}
+.ban:after{content:"🍫";position:absolute;right:-6px;bottom:-14px;font-size:6.5rem;transform:rotate(-12deg);opacity:.95}
+.ban small{color:var(--ye);font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.ban h2{margin:4px 0 12px;font-size:1.6rem;line-height:1.15;font-weight:900;max-width:70%}
+.y{border:0;background:var(--ye);color:var(--pu);font-weight:900;border-radius:999px;padding:10px 20px}
+.p{border:0;background:var(--pu);color:#fff;font-weight:800;border-radius:14px;padding:13px 18px}
+.g{border:1.5px solid var(--line);background:#fff;color:var(--pu);font-weight:800;border-radius:14px;padding:11px 16px}
+.p[disabled],.y[disabled]{opacity:.5}
+.big{width:100%;font-size:1.05rem;padding:15px}
+h3{font-size:1.15rem;font-weight:900;margin:22px 0 10px;display:flex;justify-content:space-between;align-items:baseline}
+h3 a{font-size:.85rem;color:var(--pu2);font-weight:800;cursor:pointer}
+.row{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin:0 -16px;padding-left:16px;padding-right:16px}
+.row>.pc{flex:0 0 150px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pc{position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;cursor:pointer}
+.pc .im{aspect-ratio:1;background:#fff;display:grid;place-items:center;font-size:2.6rem}
+.pc img{width:100%;height:100%;object-fit:contain}
+.pc .bd{padding:8px 10px 10px}.pc b{display:block;font-size:.92rem;line-height:1.2;min-height:2.2em;overflow:hidden}
+.pr{font-weight:900;color:var(--pu)}.mrp{color:var(--mute);text-decoration:line-through;font-weight:600;font-size:.82rem;margin-left:4px}
+.off{position:absolute;top:8px;left:8px;background:var(--ye);color:var(--pu);font-weight:900;font-size:.72rem;border-radius:8px;padding:2px 7px}
+.so{position:absolute;inset:0;background:rgba(255,255,255,.65);display:grid;place-items:center;font-weight:900;color:var(--mute)}
+.add{position:absolute;right:8px;bottom:8px;width:34px;height:34px;border-radius:50%;border:0;background:var(--pu);color:#fff;font-size:1.3rem;font-weight:800;line-height:1}
+.hrt{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(255,255,255,.9);font-size:1rem}
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cat{border:0;border-radius:18px;padding:18px 14px;text-align:left;background:var(--pl);color:var(--pu);font-weight:900;font-size:1.02rem}
+.cat:nth-child(4n+2),.cat:nth-child(4n+3){background:var(--yl)}.cat small{display:block;color:var(--mute);font-weight:700;margin-top:2px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:14px -16px;padding:0 16px}
+.chips button{flex:none;border:1.5px solid var(--line);background:#fff;color:var(--pu);border-radius:999px;padding:7px 15px;font-weight:800}
+.chips button.on{background:var(--pu);color:#fff;border-color:var(--pu)}
+.rev{flex:0 0 240px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}.st{color:#F5A400;letter-spacing:2px}
+.tab{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tab .wrap{display:flex}.tab button{position:relative;flex:1;border:0;background:none;padding:9px 0 8px;color:var(--mute);font-weight:800;font-size:.72rem}
+.tab button span{display:block;font-size:1.35rem;line-height:1.1}.tab button.on{color:var(--pu)}
+.tab i{position:absolute;top:3px;left:55%;min-width:18px;height:18px;border-radius:9px;background:var(--pu);color:#fff;font:800 .7rem/18px Nunito;font-style:normal;padding:0 4px}
+.wa{position:fixed;right:14px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:19;width:54px;height:54px;border-radius:50%;background:#25D366;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.wa svg{width:30px;height:30px;fill:#fff}
+.gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;background:#fff;border-radius:20px;border:1px solid var(--line);margin-top:12px;scrollbar-width:none}
+.gal>*{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:1;object-fit:contain;display:grid;place-items:center;font-size:5rem}
+.dots{text-align:center;color:var(--mute);font-size:.8rem;margin-top:6px}
+.opt{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}.opt span{font-size:.8rem;color:var(--mute);font-weight:800;min-width:60px}
+.opt button{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:6px 13px;font-weight:800;color:var(--ink)}.opt button.on{border-color:var(--pu);background:var(--pu);color:#fff}.opt button.oos{text-decoration:line-through;opacity:.5}
+.facts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.facts span{background:var(--pl);color:var(--pu);border-radius:10px;padding:4px 10px;font-weight:800;font-size:.85rem}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}.bar .wrap{display:flex;gap:10px;padding:0;align-items:center}
+.qty{display:flex;align-items:center;background:var(--pl);border-radius:14px;flex:none}.qty button{border:0;background:none;width:42px;height:46px;font-size:1.3rem;color:var(--pu);font-weight:900}.qty b{min-width:22px;text-align:center}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.ln{display:flex;gap:10px;align-items:center;padding:8px 0}.ln img,.ln .th{width:54px;height:54px;border-radius:12px;object-fit:contain;background:#fff;border:1px solid var(--line);display:grid;place-items:center;flex:none}
+.ln .m{flex:1;min-width:0}.ln .m b{display:block;font-size:.95rem;line-height:1.2}
+input,textarea,select{width:100%;font:inherit;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);margin:4px 0 10px}
+input:focus,textarea:focus{outline:2px solid var(--pu2);border-color:var(--pu2)}
+label{font-size:.82rem;font-weight:800;color:var(--mute)}
+.err{color:var(--err);font-weight:700;min-height:1.2em;margin:0 0 8px}.note{background:var(--yl);border-radius:12px;padding:10px 12px;font-size:.88rem;font-weight:700;margin:10px 0}
+.pay{display:flex;gap:10px}.pay button{flex:1;border:2px solid var(--line);background:#fff;border-radius:14px;padding:13px;font-weight:900;color:var(--ink)}.pay button.on{border-color:var(--pu);background:var(--pl);color:var(--pu)}
+.menu button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:#fff;border-bottom:1px solid var(--line);padding:15px 4px;font-weight:800;color:var(--ink)}
+.menu button b{margin-left:auto;color:var(--mute)}.menu em{font-style:normal;background:var(--pu);color:#fff;border-radius:9px;padding:0 7px;font-size:.75rem}
+.tl{margin:6px 0 0}.tl div{position:relative;padding:0 0 18px 34px;color:var(--mute);font-weight:700}
+.tl div:before{content:"";position:absolute;left:8px;top:20px;bottom:-2px;width:3px;background:var(--line)}.tl div:last-child:before{display:none}
+.tl div:after{content:"";position:absolute;left:0;top:2px;width:19px;height:19px;border-radius:50%;background:#fff;border:3px solid var(--line)}
+.tl .d{color:var(--ink)}.tl .d:before{background:var(--pu)}.tl .d:after{background:var(--pu);border-color:var(--pu)}
+.tl .c:after{background:var(--ye);border-color:var(--pu)}.tl .c{color:var(--pu);font-weight:900}.tl small{display:block;font-weight:600;color:var(--mute)}
+.tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:900;background:var(--pl);color:var(--pu)}.tag.ok{background:#DDF3E5;color:var(--ok)}.tag.bad{background:#FBE0DD;color:var(--err)}
+.empty{text-align:center;color:var(--mute);padding:50px 0;font-weight:700}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(96px + env(safe-area-inset-bottom,0px));margin:0 auto;max-width:420px;background:var(--ink);color:#fff;padding:12px 14px;border-radius:14px;text-align:center;font-weight:700;z-index:99}
+.otp{letter-spacing:10px;font-size:1.6rem;text-align:center;font-weight:900}
+:focus-visible{outline:3px solid var(--ye);outline-offset:2px}
 </style>
 </head>
 <body>
-<header class="hd"><div class="wrap"><small>Order online</small><h1 id="name">Loading…</h1>
-  <label class="search"><span>🔍</span><input id="q" placeholder="Search products" oninput="draw()" aria-label="Search products"></label></div></header>
-<nav class="chips" id="chips"><div class="wrap" id="chipRow"></div></nav>
-<main class="wrap" id="sections"></main>
-<button id="bar" onclick="openCart()"><span id="sum"></span><span>View cart ›</span></button>
-<dialog id="pDlg"></dialog>
-<dialog id="cartDlg"><div class="pad" id="cartBody"></div></dialog>
-<dialog id="confirmDlg"><div class="pad"><h2 style="margin-top:0">Place this order?</h2><p id="confirmText"></p><p class="err" id="cerr"></p>
-  <div class="line"><button class="btn g" onclick="$('confirmDlg').close()">Go back</button><button class="btn" id="yes" onclick="send()">Yes, confirm order</button></div></div></dialog>
+<div id="app"></div>
 <script>
 const slug = location.pathname.split("/")[2];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-let shop = { tags: [], products: [] }, cart = {}, info = { name: "", phone: "", address: "" }, openKey = null, sel = {}, defs = {};
+const LS = { get(k) { try { return localStorage.getItem(k + slug); } catch (e) { return null; } }, set(k, v) { try { v == null ? localStorage.removeItem(k + slug) : localStorage.setItem(k + slug, v); } catch (e) {} } };
+let shop = { tags: [], products: [], reviews: [] }, loaded = false, failed = false;
+let cart = {}; try { cart = JSON.parse(LS.get("cart") || "{}") || {}; } catch (e) { cart = {}; }
+let token = LS.get("tok") || "", me = null, stack = [["home"]], view = ["home"], sel = {}, tag = "", q = "", pay = "Cash", gi = { name: "", phone: "", address: "", email: "", note: "" }, addrId = "", form = null, otp = { email: "", sent: false }, placed = null, msg = "", busy = false;
 
-fetch("/api/store/" + slug).then(r => r.ok ? r.json() : Promise.reject())
-  .then(d => { shop = d; document.title = d.name; $("name").textContent = d.name; draw(); })
-  .catch(() => { $("name").textContent = "Store not found"; });
+// ---- talking to the server ----
+async function api(path, method, body, auth) {
+  const r = await fetch("/api/store/" + slug + path, { method: method || "GET", headers: Object.assign({ "Content-Type": "application/json" }, token ? { "x-ctoken": token } : {}), body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && token) { token = ""; me = null; LS.set("tok", null); }
+  if (!r.ok) throw new Error(j.error || "Something went wrong. Please try again.");
+  return j;
+}
+async function loadShop() { try { shop = await api(""); document.title = shop.name; loaded = true; failed = false; } catch (e) { failed = true; } render(); }
+async function loadMe() { if (!token) return; try { me = await api("/c/me"); } catch (e) { me = null; } render(); }
+function toast(t) { let n = $("toast"); if (!n) { n = document.createElement("div"); n.id = "toast"; n.className = "toast"; n.setAttribute("role", "status"); document.body.appendChild(n); } n.textContent = t; n.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => n.style.display = "none", 3200); }
 
+// ---- navigation ----
+function go(...v) { stack.push(view); view = v; msg = ""; render(); scrollTo(0, 0); }
+function back() { view = stack.pop() || ["home"]; msg = ""; render(); }
+function root(v) { stack = []; view = [v]; msg = ""; render(); scrollTo(0, 0); }
+
+// ---- products ----
 const find = id => shop.products.find(p => p.id === id);
-const total = () => Object.entries(cart).reduce((t, [id, q]) => t + (find(id) ? find(id).price * q : 0), 0);
 const left = p => p.qty === null ? 99 : p.qty;
+const sibs = p => shop.products.filter(x => x.group === p.group);
+const rep = p => find(p.group) || p;
+const groups = list => { const used = {}, out = []; [...list].sort((a, b) => (a.group === a.id ? 0 : 1) - (b.group === b.id ? 0 : 1)).forEach(p => { if (used[p.group]) return; used[p.group] = 1; out.push(p); }); return out; };
+const cartTotal = () => Object.entries(cart).reduce((t, [id, n]) => t + (find(id) ? find(id).price * n : 0), 0);
+const cartCount = () => Object.entries(cart).reduce((t, [id, n]) => t + (find(id) ? n : 0), 0);
+const saveCart = () => LS.set("cart", JSON.stringify(cart));
 const KIND = { general: ["Colour", "Size"], food: ["Flavour", "Weight"] };
-const sibs = p => shop.products.filter(x => x.group === p.group);        // everything merged under the same main product
-const curOf = key => find(sel[key]) || find(defs[key]);                  // the variant a listing is showing right now
 const label = p => { const o = [p.o1, p.o2].filter(Boolean); return o.length && !o.every(v => p.name.toLowerCase().includes(v.toLowerCase())) ? `${p.name} (${o.join(", ")})` : p.name; };
-
-// colour / size (or flavour / weight) buttons under a listing
-function optHtml(key, cur) {
-  const S = sibs(cur); if (S.length < 2) return "";
-  const L = KIND[S.some(x => x.kind == "food") ? "food" : "general"];
-  return [0, 1].map(i => {
-    const f = i ? "o2" : "o1", vals = [...new Set(S.map(x => x[f]).filter(Boolean))];
-    return vals.length ? `<div class="opt"><span>${L[i]}</span>${vals.map(v => `<button class="${cur[f] === v ? "on" : ""} ${S.filter(x => x[f] === v).every(x => left(x) <= 0) ? "oos" : ""}" data-v="${esc(v)}" onclick="event.stopPropagation();pick('${key}',${i},this.dataset.v)">${esc(v)}</button>`).join("")}</div>` : "";
-  }).join("");
-}
-function pick(key, i, v) {
-  const cur = curOf(key), S = sibs(cur), f = i ? "o2" : "o1", other = i ? "o1" : "o2";
-  const next = S.find(x => x[f] === v && x[other] === cur[other]) || S.find(x => x[f] === v);
-  if (next) sel[key] = next.id; draw();
-}
-
-const ctl = p => left(p) <= 0 ? '<div class="ctl"><button class="off" disabled>Sold out</button></div>'
-  : cart[p.id] ? `<div class="ctl"><button onclick="chg('${p.id}',-1)" aria-label="Remove one">−</button><span>${cart[p.id]}</span><button onclick="chg('${p.id}',1)" aria-label="Add one">+</button></div>`
-  : `<div class="ctl"><button onclick="chg('${p.id}',1)">ADD</button></div>`;
-
-function listing(key, p) {
-  defs[key] = p.id; const c = curOf(key);
-  return `<div class="it"><div class="tx"><b onclick="openP('${key}')">${esc(c.name)}</b><div class="pr">₹${c.price}</div>${optHtml(key, c)}<div class="ds" onclick="openP('${key}')">${esc(c.description)}</div></div>
-    <div class="im">${c.photos[0] ? `<img src="${esc(c.photos[0])}" alt="${esc(c.name)}" loading="lazy" onclick="openP('${key}')">` : `<div class="ph" onclick="openP('${key}')">🛍️</div>`}${c.photos.length > 1 ? `<span class="n">1/${c.photos.length}</span>` : ""}${ctl(c)}</div></div>`;
-}
-
-// browsing: one listing per group of merged products. searching: every matching product on its own
-function sections() {
-  const q = $("q").value.trim().toLowerCase();
-  if (q) {
-    const hits = shop.products.filter(p => [p.name, p.description, p.o1, p.o2].join(" ").toLowerCase().includes(q));
-    return hits.length ? [[hits.length + " result" + (hits.length == 1 ? "" : "s"), hits.map(p => ["p:" + p.id, p])]] : [];
-  }
-  const ord = [...shop.products].sort((a, b) => (a.group === a.id ? 0 : 1) - (b.group === b.id ? 0 : 1)); // main product first
-  const mk = pred => { const used = {}, out = []; ord.forEach(p => { if (used[p.group] || !pred(p)) return; used[p.group] = 1; out.push(["g:" + p.group, p]); }); return out; };
-  const g = shop.tags.map(t => [t, mk(p => p.tags.includes(t))]);
-  const rest = mk(p => !sibs(p).some(x => x.tags.some(t => shop.tags.includes(t))));
-  if (rest.length) g.push([shop.tags.length ? "More items" : "All items", rest]);
-  return g.filter(x => x[1].length);
-}
-
-function draw() {
-  const g = sections(), q = $("q").value.trim();
-  $("chips").style.display = q ? "none" : "";
-  $("chipRow").innerHTML = g.map(([t], i) => `<button onclick="document.getElementById('sec${i}').scrollIntoView({behavior:'smooth'})">${esc(t)}</button>`).join("");
-  $("sections").innerHTML = g.map(([t, ls], i) => `<h2 id="sec${i}">${esc(t)}</h2>` + ls.map(([k, p]) => listing(k, p)).join("")).join("")
-    || `<p class="empty">${shop.products.length ? "Nothing matches your search." : "No products yet."}</p>`;
-  const n = Object.values(cart).reduce((a, b) => a + b, 0);
-  $("bar").style.display = n ? "flex" : "none";
-  $("sum").textContent = n + " item" + (n > 1 ? "s" : "") + " · ₹" + total();
-  if ($("pDlg").open) renderP();
-}
+const pct = p => p.mrp > p.price ? Math.round(100 * (p.mrp - p.price) / p.mrp) : 0;
+const priceHtml = p => `<span class="pr">₹${p.price}</span>${p.mrp ? `<span class="mrp">₹${p.mrp}</span>` : ""}`;
 function chg(id, d) {
-  const p = find(id), c = (cart[id] || 0) + d;
-  if (d > 0 && c > left(p)) return;
-  c <= 0 ? delete cart[id] : cart[id] = c;
-  draw(); if ($("cartDlg").open) Object.keys(cart).length ? openCart() : $("cartDlg").close();
+  const p = find(id); if (!p) return; const c = (cart[id] || 0) + d, mq = shop.maxQty || 20;
+  if (d > 0 && c > left(p)) { toast("No more stock available."); return; }
+  if (d > 0 && c > mq) { toast(`You can order up to ${mq} of one item at a time. For bigger orders, please contact the shop${shop.phone ? " on " + shop.phone : ""}.`); return; }
+  c <= 0 ? delete cart[id] : cart[id] = c; saveCart(); render();
 }
-function openP(key) { openKey = key; renderP(); if (!$("pDlg").open) $("pDlg").showModal(); }
-function renderP() {
-  const p = curOf(openKey); if (!p) return;
-  $("pDlg").innerHTML = `<div class="car" onscroll="const c=this.parentNode.querySelector('.cnt');if(c)c.textContent=(Math.round(this.scrollLeft/this.clientWidth)+1)+' / ${p.photos.length}'">${p.photos.map(u => `<img src="${esc(u)}" alt="${esc(p.name)}">`).join("") || '<div class="ph">🛍️</div>'}</div>
-    ${p.photos.length > 1 ? `<div class="cnt">1 / ${p.photos.length} · swipe for more photos</div>` : ""}
-    <div class="pad"><h2 style="margin:0 0 8px">${esc(p.name)}</h2><div class="pr" style="font-size:1.2rem">₹${p.price}</div>${optHtml(openKey, p)}<p class="ds" style="-webkit-line-clamp:unset">${esc(p.description)}</p>
-    <div class="line"><button class="btn g" onclick="$('pDlg').close()">Close</button><div style="position:relative;width:130px;height:44px">${ctl(p).replace('class="ctl"', 'class="ctl" style="bottom:4px"')}</div></div></div>`;
+function wished(id) { return me && me.wishlist.includes(id); }
+async function heart(e, id) {
+  e.stopPropagation(); if (!token) { toast("Log in to save favourites."); go("login"); return; }
+  const on = !wished(id); me.wishlist = on ? [...me.wishlist, id] : me.wishlist.filter(x => x !== id); render();
+  try { await api("/c/wishlist", "PUT", { id, on }); } catch (er) { toast(er.message); loadMe(); }
 }
-function openCart() {
-  $("pDlg").close();
-  $("cartBody").innerHTML = '<h2 style="margin-top:0">Your cart</h2>' +
-    Object.entries(cart).map(([id, q]) => `<div class="line"><span>${esc(label(find(id)))}</span><span>₹${find(id).price * q} · <button class="btn g" style="padding:4px 10px" onclick="chg('${id}',-1)" aria-label="Remove one">−</button> ${q} <button class="btn g" style="padding:4px 10px" onclick="chg('${id}',1)" aria-label="Add one">+</button></span></div>`).join("") +
-    `<div class="line"><b>Total</b><b>₹${total()}</b></div>
-     <label>Your name<input value="${esc(info.name)}" oninput="info.name=this.value" autocomplete="name"></label>
-     <label>Phone number<input type="tel" value="${esc(info.phone)}" oninput="info.phone=this.value" autocomplete="tel"></label>
-     <label>Full delivery address<textarea rows="3" oninput="info.address=this.value" autocomplete="street-address">${esc(info.address)}</textarea></label>
-     <p class="err" id="err"></p>
-     <div class="line"><button class="btn g" onclick="$('cartDlg').close()">Keep shopping</button><button class="btn" onclick="review()">Place order</button></div>`;
-  if (!$("cartDlg").open) $("cartDlg").showModal();
+function card(p) {
+  const single = sibs(p).length < 2, so = left(p) <= 0;
+  return `<div class="pc" onclick="go('product','${p.id}')"><div class="im">${p.photos[0] ? `<img src="${esc(p.photos[0])}" alt="${esc(p.name)}" loading="lazy">` : "🍫"}</div>${pct(p) ? `<span class="off">${pct(p)}% OFF</span>` : ""}
+    <button class="hrt" aria-label="Save to wishlist" onclick="heart(event,'${p.id}')">${wished(p.id) ? "💜" : "🤍"}</button>
+    <div class="bd"><b>${esc(p.name)}</b>${priceHtml(p)}</div>${so ? '<div class="so">Sold out</div>' : single ? `<button class="add" aria-label="Add ${esc(p.name)} to cart" onclick="event.stopPropagation();chg('${p.id}',1);toast('Added to cart')">+</button>` : ""}</div>`;
+}
+const rowOf = list => `<div class="row">${list.map(card).join("")}</div>`;
+
+// ---- screens ----
+const bell = () => `<button class="ib" aria-label="Notifications" onclick="${token ? "openNotifs()" : "go('login')"}">🔔${me && me.unread ? `<i>${me.unread}</i>` : ""}</button>`;
+const topBar = (title, bk) => `<div class="top"><div class="wrap">${bk ? '<button class="bk" aria-label="Back" onclick="back()">‹</button>' : ""}<h1>${esc(title)}</h1>${bk ? "" : `<button class="ib" aria-label="Search" onclick="go('search')">🔍</button>${bell()}`}</div></div>`;
+
+function home() {
+  const ps = shop.products, newer = [...ps].sort((a, b) => b.at - a.at).slice(0, 8), best = [...ps].filter(p => p.sold > 0).sort((a, b) => b.sold - a.sold).slice(0, 8), offers = ps.filter(p => pct(p) > 0).sort((a, b) => pct(b) - pct(a)).slice(0, 8), feat = ps.filter(p => p.featured).slice(0, 8);
+  const sec = (t, l, to) => l.length ? `<h3>${t}${to ? `<a onclick="${to}">See all</a>` : ""}</h3>${rowOf(groups(l))}` : "";
+  return topBar(shop.name) + `<main class="wrap"><div class="ban"><small>Welcome</small><h2>Sweet picks from ${esc(shop.name)}</h2><button class="y" onclick="root('cats')">Shop now</button></div>
+    ${sec("New arrivals", newer)}${sec("Bestsellers", best)}${sec("Offers & discounts", offers)}
+    ${shop.tags.length ? `<h3>Shop by category</h3><div class="cats">${shop.tags.map(t => `<button class="cat" onclick="tag=this.dataset.t;root('cats')" data-t="${esc(t)}">${esc(t)}<small>${ps.filter(p => p.tags.includes(t)).length} items</small></button>`).join("")}</div>` : ""}
+    ${sec("Featured", feat)}
+    ${shop.reviews.length ? `<h3>Customer reviews${shop.rating ? `<span style="font-size:.9rem;color:var(--mute)"><span class="st">★</span> ${shop.rating.avg} (${shop.rating.n})</span>` : ""}</h3><div class="row">${shop.reviews.map(r => `<div class="rev"><div class="st">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</div><p style="margin:6px 0">${esc(r.text) || "Loved it!"}</p><b>${esc(r.name)}</b></div>`).join("")}</div>` : ""}
+    ${ps.length ? "" : '<p class="empty">No products yet. Please check back soon.</p>'}</main>`;
+}
+function cats() {
+  const list = tag ? shop.products.filter(p => p.tags.includes(tag)) : shop.products;
+  return topBar("Categories") + `<main class="wrap"><div class="chips"><button class="${tag ? "" : "on"}" onclick="tag='';render()">All</button>${shop.tags.map(t => `<button class="${tag === t ? "on" : ""}" data-t="${esc(t)}" onclick="tag=this.dataset.t;render()">${esc(t)}</button>`).join("")}</div>
+    ${list.length ? `<div class="grid">${groups(list).map(card).join("")}</div>` : '<p class="empty">Nothing here yet.</p>'}</main>`;
+}
+function search() {
+  const s = q.trim().toLowerCase(), hits = s ? shop.products.filter(p => [p.name, p.description, p.o1, p.o2, ...p.tags].join(" ").toLowerCase().includes(s)) : [];
+  return `<div class="top"><div class="wrap"><button class="bk" aria-label="Back" onclick="back()">‹</button><input id="qi" value="${esc(q)}" placeholder="Search chocolates" aria-label="Search" style="margin:0" oninput="q=this.value;drawHits()" autofocus></div></div><main class="wrap"><div id="hits"></div></main>`;
+}
+function drawHits() {
+  const s = q.trim().toLowerCase(), hits = s ? shop.products.filter(p => [p.name, p.description, p.o1, p.o2, ...p.tags].join(" ").toLowerCase().includes(s)) : [];
+  $("hits").innerHTML = !s ? '<p class="empty">Type to search</p>' : hits.length ? `<p style="color:var(--mute);font-weight:700">${hits.length} result${hits.length > 1 ? "s" : ""}</p><div class="grid">${hits.map(card).join("")}</div>` : '<p class="empty">Nothing matches your search.</p>';
+}
+function product() {
+  const p = find(view[1]); if (!p) return topBar("Not found", 1) + '<p class="empty">This product is no longer available.</p>';
+  const S = sibs(p), L = KIND[S.some(x => x.kind == "food") ? "food" : "general"];
+  const opts = S.length < 2 ? "" : [0, 1].map(i => { const f = i ? "o2" : "o1", o = i ? "o1" : "o2", vals = [...new Set(S.map(x => x[f]).filter(Boolean))]; return vals.length ? `<div class="opt"><span>${L[i]}</span>${vals.map(v => `<button class="${p[f] === v ? "on" : ""} ${S.filter(x => x[f] === v).every(x => left(x) <= 0) ? "oos" : ""}" data-v="${esc(v)}" onclick="pickOpt('${p.id}',${i},this.dataset.v)">${esc(v)}</button>`).join("")}</div>` : ""; }).join("");
+  const stock = left(p) <= 0 ? '<span style="color:var(--err)">Out of stock</span>' : p.qty === null ? "In stock" : p.qty <= 5 ? `Only ${p.qty} left` : "In stock";
+  const n = cart[p.id] || 0, so = left(p) <= 0;
+  return topBar(shop.name, 1) + `<main class="wrap"><div class="gal" onscroll="const c=document.getElementById('dots');if(c)c.textContent=(Math.round(this.scrollLeft/this.clientWidth)+1)+' / ${p.photos.length}'">${p.photos.map(u => `<img src="${esc(u)}" alt="${esc(p.name)}">`).join("") || "<div>🍫</div>"}</div>${p.photos.length > 1 ? `<div class="dots" id="dots">1 / ${p.photos.length} · swipe for more photos</div>` : ""}
+    <div style="display:flex;gap:10px;align-items:flex-start;margin-top:14px"><h2 style="flex:1;margin:0;font-size:1.5rem;font-weight:900;line-height:1.15">${esc(p.name)}</h2><button class="ib" style="background:var(--pl)" aria-label="Save to wishlist" onclick="heart(event,'${p.id}')">${wished(p.id) ? "💜" : "🤍"}</button></div>
+    <div style="margin:8px 0;font-size:1.3rem">${priceHtml(p)} ${pct(p) ? `<span class="tag ok">${pct(p)}% OFF</span>` : ""}</div>
+    <div class="facts"><span>${stock}</span>${p.o2 ? `<span>${esc(p.o2)}</span>` : ""}${p.tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>${opts}
+    <p style="color:var(--mute)">${esc(p.description)}</p></main>
+    <div class="bar"><div class="wrap">${so ? '<button class="p big" disabled>Sold out</button>' : n ? `<div class="qty"><button aria-label="Remove one" onclick="chg('${p.id}',-1)">−</button><b>${n}</b><button aria-label="Add one" onclick="chg('${p.id}',1)">+</button></div><button class="p big" onclick="go('cart')">Go to cart · ₹${cartTotal()}</button>` : `<button class="p big" onclick="chg('${p.id}',1)">Add to cart · ₹${p.price}</button>`}</div></div>`;
+}
+function pickOpt(id, i, v) {
+  const cur = find(id), S = sibs(cur), f = i ? "o2" : "o1", o = i ? "o1" : "o2", next = S.find(x => x[f] === v && x[o] === cur[o]) || S.find(x => x[f] === v);
+  if (next) { view = ["product", next.id]; render(); }
+}
+function cartView() {
+  const ids = Object.keys(cart).filter(id => find(id));
+  if (!ids.length) return topBar("My cart", stack.length) + '<main class="wrap"><p class="empty">Your cart is empty.<br><br><button class="y" onclick="root(\'home\')">Start shopping</button></p></main>';
+  return topBar("My cart", stack.length) + `<main class="wrap"><div class="card">${ids.map(id => { const p = find(id); return `<div class="ln"><div class="th">${p.photos[0] ? `<img src="${esc(p.photos[0])}" alt="" style="width:100%;height:100%;border-radius:12px;object-fit:contain">` : "🍫"}</div><div class="m"><b>${esc(label(p))}</b>${priceHtml(p)}</div><div class="qty"><button aria-label="Remove one" onclick="chg('${id}',-1)">−</button><b>${cart[id]}</b><button aria-label="Add one" onclick="chg('${id}',1)">+</button></div></div>`; }).join("")}
+    <div class="ln" style="border-top:1px solid var(--line);margin-top:6px"><b style="flex:1">Subtotal</b><b>₹${cartTotal()}</b></div></div>
+    <div class="note">Delivery charges will be added in the final invoice.</div><button class="p big" onclick="go('checkout')">Checkout</button></main>`;
+}
+function checkout() {
+  const saved = me ? me.addresses : [], a = saved.find(x => x.id === addrId) || (addrId === "" ? saved.find(x => x.def) || saved[0] : null);
+  const addrBox = token && saved.length ? `<label>Deliver to</label>${saved.map(x => `<div class="card" style="border-color:${a && a.id === x.id ? "var(--pu)" : "var(--line)"};cursor:pointer" onclick="addrId='${x.id}';render()"><b>${esc(x.tag)} · ${esc(x.name)}</b><br>${esc(x.line)}, ${esc(x.area ? x.area + ", " : "")}${esc(x.city)} ${esc(x.pin)}<br><span style="color:var(--mute)">${esc(x.phone)}</span></div>`).join("")}<button class="g" onclick="editAddr('')">+ Add a new address</button>`
+    : `<label>Your name<input value="${esc(gi.name)}" oninput="gi.name=this.value" autocomplete="name"></label><label>Phone number<input type="tel" value="${esc(gi.phone)}" oninput="gi.phone=this.value" autocomplete="tel"></label><label>Full delivery address<textarea rows="3" oninput="gi.address=this.value" autocomplete="street-address">${esc(gi.address)}</textarea></label>${token ? "" : `<label>Email (optional, for order updates)<input type="email" value="${esc(gi.email)}" oninput="gi.email=this.value" autocomplete="email"></label><p style="margin:0 0 8px;font-size:.85rem;color:var(--mute)">Have an account? <a style="color:var(--pu2);font-weight:800" onclick="go('login')">Log in</a> to use saved addresses and track orders.</p>`}`;
+  return topBar("Checkout", 1) + `<main class="wrap"><div class="card"><h3 style="margin-top:0">Delivery</h3>${addrBox}<div class="note" style="margin-top:0">Delivery charges will be added in the final invoice.</div><label>Note for the shop (optional)<input value="${esc(gi.note)}" oninput="gi.note=this.value" maxlength="200" placeholder="e.g. gift wrap, call before arriving"></label></div>
+    <div class="card"><h3 style="margin-top:0">Payment</h3><div class="pay"><button class="${pay == "Cash" ? "on" : ""}" onclick="pay='Cash';render()">💵 Cash</button>${shop.hasUpi ? `<button class="${pay == "UPI" ? "on" : ""}" onclick="pay='UPI';render()">📲 UPI</button>` : ""}</div><p style="margin:10px 0 0;color:var(--mute);font-size:.88rem">${pay == "UPI" ? "You will get a button to pay by UPI right after placing the order." : "Pay in cash when your order arrives."}</p></div>
+    <div class="card"><div class="ln" style="padding:0"><b style="flex:1">Items total (${cartCount()})</b><b>₹${cartTotal()}</b></div></div>
+    <p class="err" role="alert">${esc(msg)}</p><button class="p big" ${busy ? "disabled" : ""} onclick="placeOrder()">Place order</button></main>`;
+}
+async function placeOrder() {
+  const saved = me ? me.addresses : [], a = token && saved.length ? (saved.find(x => x.id === addrId) || saved.find(x => x.def) || saved[0]) : null;
+  const d = a ? { name: a.name, phone: a.phone, address: `${a.line}, ${a.area ? a.area + ", " : ""}${a.city} ${a.pin}` } : { name: gi.name.trim(), phone: gi.phone.trim(), address: gi.address.trim() };
+  if (!d.name || !/^[0-9+\-\s]{8,15}$/.test(d.phone) || d.address.length < 8) { msg = "Please fill in your name, a valid phone number and your full address."; render(); return; }
+  busy = true; msg = ""; render();
+  try {
+    const j = await api("/orders", "POST", { ...d, email: gi.email, note: gi.note, payMethod: pay, items: Object.entries(cart).map(([id, qty]) => ({ id, qty })) });
+    placed = { ...j, phone: d.phone }; cart = {}; saveCart(); gi.note = ""; busy = false; stack = []; view = ["placed"]; render(); scrollTo(0, 0);
+    loadShop(); loadMe();
+  } catch (e) { busy = false; msg = e.message; render(); }
+}
+function placedView() {
+  if (!placed) return home();
+  const upi = placed.upi ? `upi://pay?pa=${encodeURIComponent(placed.upi)}&pn=${encodeURIComponent(shop.name)}&am=${placed.total}&cu=INR&tn=${encodeURIComponent("Order " + placed.number)}` : "";
+  return topBar("Order placed", 0).replace(/<button class="ib"[\s\S]*<\/div><\/div>$/, "</div></div>") + `<main class="wrap" style="text-align:center;padding-top:30px"><div style="font-size:4rem">🎉</div><h2 style="margin:6px 0">Thank you!</h2><p>Your order number is <b>${esc(placed.number)}</b>.<br>Items total ₹${placed.total}. Delivery charges will be added in the final invoice.</p>
+    ${upi ? `<p class="note">Pay ₹${placed.total} with any UPI app.</p><a href="${esc(upi)}"><button class="y big" style="width:100%;padding:15px">Pay with UPI</button></a><p style="font-size:.85rem;color:var(--mute)">UPI ID: ${esc(placed.upi)}. Delivery charges, if any, can be paid later against the final invoice.</p>` : '<p>Please keep cash ready when your order arrives.</p>'}
+    <div style="display:flex;gap:10px;margin-top:16px"><button class="g big" onclick="root('home')">Keep shopping</button>${token ? `<button class="p big" onclick="root('orders')">My orders</button>` : `<button class="p big" onclick="go('login')">Log in to track</button>`}</div></main>`;
+}
+
+// ---- login with email code ----
+function login() {
+  return topBar("Log in", 1) + `<main class="wrap"><div class="card" style="margin-top:16px"><h3 style="margin-top:0">${otp.sent ? "Enter your code" : "Log in or sign up"}</h3>
+    ${otp.sent ? `<p style="color:var(--mute)">We sent a 6-digit code to <b>${esc(otp.email)}</b>. It works for 10 minutes.</p><input class="otp" id="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="••••••" oninput="this.value=this.value.replace(/\\D/g,'')"><p class="err" role="alert">${esc(msg)}</p><button class="p big" ${busy ? "disabled" : ""} onclick="verifyOtp()">Verify and continue</button><p style="text-align:center"><a style="color:var(--pu2);font-weight:800" onclick="otp.sent=false;msg='';render()">Use a different email</a> · <a style="color:var(--pu2);font-weight:800" onclick="sendOtp()">Send again</a></p>`
+    : `<p style="color:var(--mute)">No password needed. We will email you a code.</p><label>Email address<input id="em" type="email" value="${esc(otp.email)}" autocomplete="email" placeholder="you@example.com"></label><p class="err" role="alert">${esc(msg)}</p><button class="p big" ${busy ? "disabled" : ""} onclick="sendOtp()">Send code</button>`}</div></main>`;
+}
+async function sendOtp() {
+  const e = $("em") ? $("em").value.trim() : otp.email; otp.email = e; busy = true; msg = ""; render();
+  try { await api("/c/otp", "POST", { email: e }); otp.sent = true; toast("Code sent. Check your inbox (and spam)."); } catch (er) { msg = er.message; }
+  busy = false; render();
+}
+async function verifyOtp() {
+  const code = $("code") ? $("code").value : ""; busy = true; msg = ""; render();
+  try { const j = await api("/c/verify", "POST", { email: otp.email, code }); token = j.token; LS.set("tok", token); otp = { email: "", sent: false }; await loadMe(); stack = []; view = ["account"]; toast("Welcome!"); }
+  catch (er) { msg = er.message; }
+  busy = false; render();
+}
+function logout() { token = ""; me = null; LS.set("tok", null); root("home"); }
+
+// ---- account ----
+const gate = fn => token ? (me ? fn() : topBar("Loading…", 1) + '<p class="empty">Loading…</p>') : topBar("Account", 0) + `<main class="wrap"><div class="card" style="margin-top:16px;text-align:center"><div style="font-size:2.6rem">👤</div><h3 style="justify-content:center">Log in to your account</h3><p style="color:var(--mute)">Save addresses, track orders, reorder in one tap and keep a wishlist.</p><button class="p big" onclick="go('login')">Log in with email</button></div><div class="menu" style="margin-top:8px"><button onclick="go('support')">💬 Contact support<b>›</b></button></div></main>`;
+function account() {
+  return gate(() => topBar("My account", 0) + `<main class="wrap"><div class="card" style="margin-top:14px"><b style="font-size:1.15rem">${esc(me.name || "Welcome")}</b><br><span style="color:var(--mute)">${esc(me.email)}</span></div>
+    <div class="menu"><button onclick="go('profile')">👤 My profile<b>›</b></button><button onclick="go('addresses')">📍 Saved addresses<b>${me.addresses.length}</b></button><button onclick="go('orders')">📦 My orders<b>${me.orders.length}</b></button><button onclick="go('wishlist')">💜 Wishlist<b>${me.wishlist.length}</b></button><button onclick="openNotifs()">🔔 Notifications ${me.unread ? `<em>${me.unread}</em>` : ""}<b>›</b></button><button onclick="go('support')">💬 Contact support<b>›</b></button><button onclick="logout()">🚪 Log out<b></b></button></div></main>`);
+}
+function profile() {
+  return gate(() => topBar("My profile", 1) + `<main class="wrap"><div class="card" style="margin-top:14px"><label>Email<input value="${esc(me.email)}" disabled></label><label>Name<input id="pn" value="${esc(me.name)}" autocomplete="name"></label><label>Phone<input id="pp" type="tel" value="${esc(me.phone)}" autocomplete="tel"></label><p class="err" role="alert">${esc(msg)}</p><button class="p big" onclick="saveProfile()">Save</button></div></main>`);
+}
+async function saveProfile() { try { await api("/c/me", "PUT", { name: $("pn").value, phone: $("pp").value }); await loadMe(); toast("Saved"); back(); } catch (e) { msg = e.message; render(); } }
+function addresses() {
+  return gate(() => form ? addrForm() : topBar("Saved addresses", 1) + `<main class="wrap" style="padding-top:14px">${me.addresses.map(x => `<div class="card"><span class="tag">${esc(x.tag)}</span>${x.def ? ' <span class="tag ok">Default</span>' : ""}<p style="margin:8px 0"><b>${esc(x.name)}</b><br>${esc(x.line)}${x.area ? ", " + esc(x.area) : ""}<br>${esc(x.city)} ${esc(x.pin)}<br><span style="color:var(--mute)">${esc(x.phone)}</span></p><button class="g" onclick="editAddr('${x.id}')">Edit</button> <button class="g" style="color:var(--err)" onclick="delAddr('${x.id}')">Delete</button></div>`).join("") || '<p class="empty">No saved addresses yet.</p>'}<button class="p big" onclick="editAddr('')">+ Add new address</button></main>`);
+}
+function editAddr(id) { form = id ? { ...me.addresses.find(x => x.id === id) } : { id: "", tag: "Home", name: me ? me.name : "", phone: me ? me.phone : "", line: "", area: "", pin: "", city: "", def: !(me && me.addresses.length) }; if (!token) { go("login"); return; } if (view[0] !== "addresses") go("addresses"); else render(); }
+function addrForm() {
+  const f = form, inp = (k, l, t) => `<label>${l}<input value="${esc(f[k])}" ${t ? `type="${t}"` : ""} oninput="form.${k}=this.value"></label>`;
+  return topBar(f.id ? "Edit address" : "New address", 0).replace(/<button class="ib"[\s\S]*<\/div><\/div>$/, "</div></div>") + `<main class="wrap" style="padding-top:14px"><div class="card"><div class="chips" style="margin:0 0 8px;padding:0">${["Home", "Work", "Other"].map(t => `<button class="${f.tag === t ? "on" : ""}" onclick="form.tag='${t}';render()">${t}</button>`).join("")}</div>${inp("name", "Full name")}${inp("phone", "Phone", "tel")}${inp("line", "House no., street")}${inp("area", "Area / landmark (optional)")}${inp("pin", "Pincode")}${inp("city", "City")}<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" style="width:auto;margin:0" ${f.def ? "checked" : ""} onchange="form.def=this.checked"> Make this my default address</label><p class="err" role="alert">${esc(msg)}</p><div style="display:flex;gap:10px"><button class="g big" onclick="form=null;msg='';render()">Cancel</button><button class="p big" onclick="saveAddr()">Save</button></div></div></main>`;
+}
+async function saveAddr() { try { const j = await api("/c/addresses", "POST", form); addrId = j.id; form = null; msg = ""; await loadMe(); toast("Address saved"); } catch (e) { msg = e.message; render(); } }
+async function delAddr(id) { if (!confirm("Delete this address?")) return; try { await api("/c/addresses/" + id, "DELETE"); await loadMe(); } catch (e) { toast(e.message); } }
+
+// ---- orders: Track and Reorder sit under every order ----
+const STEPS = ["Order Placed", "Payment Confirmed", "Preparing Your Chocolates", "Ready for Dispatch", "Out for Delivery", "Delivered"];
+const reached = o => ({ 2: 0, 3: 2, 4: 3, 5: 4, 7: 5 }[o.stage]);
+const fmt = t => t ? new Date(t).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
+const stTag = o => o.stage === 0 ? '<span class="tag bad">Cancelled</span>' : o.stage === 7 ? '<span class="tag ok">Delivered</span>' : `<span class="tag">${STEPS[reached(o)]}</span>`;
+function orders() {
+  return gate(() => topBar("My orders", 1) + `<main class="wrap" style="padding-top:14px">${me.orders.map(o => `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b>#${esc(o.number)}</b>${stTag(o)}</div><div style="color:var(--mute);font-size:.85rem">${fmt(o.at)} · ${esc(o.payMethod)}</div>
+      ${o.lines.map(l => `<div class="ln"><div class="th">${l.photo ? `<img src="${esc(l.photo)}" alt="" style="width:100%;height:100%;border-radius:12px;object-fit:contain">` : "🍫"}</div><div class="m"><b>${esc(l.name)}</b><span style="color:var(--mute)">${l.qty} × ₹${l.price}</span></div></div>`).join("")}
+      <div class="ln" style="border-top:1px solid var(--line)"><b style="flex:1">Items total</b><b>₹${o.total}</b></div>
+      ${o.stage === 7 && !o.reviewed ? `<div style="margin:4px 0 10px">Rate this order: ${[1, 2, 3, 4, 5].map(n => `<button class="ib" style="background:var(--yl);color:#F5A400;width:34px;height:34px;display:inline-grid" aria-label="${n} stars" onclick="go('review','${o.number}',${n})">★</button>`).join("")}</div>` : ""}
+      <div style="display:flex;gap:10px"><button class="g" style="flex:1" onclick="go('track','${esc(o.number)}')">Track order</button><button class="p" style="flex:1" onclick="reorder('${esc(o.number)}')">Reorder</button></div></div>`).join("") || '<p class="empty">No orders yet.</p>'}</main>`);
+}
+function reorder(num) {
+  const o = me.orders.find(x => x.number === num); let n = 0, miss = 0;
+  o.lines.forEach(l => { const p = find(l.id); if (p && left(p) > 0) { cart[l.id] = Math.min(Math.max(cart[l.id] || 0, l.qty), left(p), shop.maxQty || 20); n++; } else miss++; });
+  saveCart(); toast(n ? (miss ? "Some items are no longer available." : "Items added to your cart") : "Sorry, these items are not available now."); if (n) go("cart");
+}
+function track() {
+  return gate(() => { const o = me.orders.find(x => x.number === view[1]); if (!o) return topBar("Track order", 1) + '<p class="empty">Order not found.</p>';
+    const r = reached(o), when = [o.at, o.ts.seen, o.ts.seen, o.ts.Packed, o.ts["In transit"], o.ts.Delivered], names = STEPS.slice(); if (o.payMethod !== "UPI") names[1] = "Order Confirmed";
+    const upi = o.upi ? `<div class="note">Pay ₹${o.total - o.paid} by UPI: <a style="color:var(--pu);font-weight:900" href="upi://pay?pa=${encodeURIComponent(o.upi)}&pn=${encodeURIComponent(shop.name)}&am=${o.total - o.paid}&cu=INR&tn=${encodeURIComponent("Order " + o.number)}">Pay now</a></div>` : "";
+    return topBar("Track order", 1) + `<main class="wrap" style="padding-top:14px"><div class="card"><b>Order #${esc(o.number)}</b> ${stTag(o)}<p style="margin:6px 0 0;color:var(--mute)">${esc(o.name)} · ${esc(o.address)}</p></div>${upi}
+      ${o.stage === 0 ? `<div class="card"><p style="margin:0"><b>This order was cancelled.</b><br>${o.ts.Cancelled ? fmt(o.ts.Cancelled) : ""}</p></div>` : `<div class="card tl">${names.map((s, i) => `<div class="${i < r || (i === r && r === 5) ? "d" : i === r ? "c" : ""}">${s}${i <= r && when[i] ? `<small>${fmt(when[i])}</small>` : ""}</div>`).join("")}</div>`}
+      <div style="display:flex;gap:10px"><button class="g big" onclick="go('support')">Need help?</button><button class="p big" onclick="reorder('${esc(o.number)}')">Reorder</button></div></main>`; });
 }
 function review() {
-  const i = info;
-  if (!i.name.trim() || !/^[0-9+\-\s]{8,15}$/.test(i.phone.trim()) || i.address.trim().length < 8) {
-    $("err").textContent = "Please fill in your name, a valid phone number and your full address."; return;
-  }
-  $("confirmText").textContent = `Total ₹${total()}. We will deliver to ${i.address.trim()} and call you on ${i.phone.trim()} to confirm.`;
-  $("cerr").textContent = ""; $("confirmDlg").showModal();
+  return gate(() => `${topBar("Rate your order", 1)}<main class="wrap"><div class="card" style="margin-top:14px"><div class="st" style="font-size:2rem">${"★".repeat(view[2])}${"☆".repeat(5 - view[2])}</div><label>Tell us what you liked (optional)<textarea id="rt" rows="3" maxlength="300"></textarea></label><p class="err" role="alert">${esc(msg)}</p><button class="p big" onclick="sendReview()">Submit review</button></div></main>`);
 }
-async function send() {
-  $("yes").disabled = true;
-  try {
-    const r = await fetch("/api/store/" + slug + "/orders", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...info, items: Object.entries(cart).map(([id, qty]) => ({ id, qty })) })
-    });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error || "Could not place the order.");
-    cart = {}; draw(); $("confirmDlg").close();
-    $("cartBody").innerHTML = `<h2 style="margin-top:0">Order placed ✅</h2><p>Your order number is <b>${esc(j.number)}</b>. We’ll call you on ${esc(info.phone)} to arrange delivery.</p><button class="btn" onclick="$('cartDlg').close()">Done</button>`;
-    fetch("/api/store/" + slug).then(r => r.json()).then(d => { shop = d; draw(); }); // refresh stock
-  } catch (e) { $("cerr").textContent = e.message; }
-  $("yes").disabled = false;
+async function sendReview() { try { await api("/c/reviews", "POST", { number: view[1], rating: Number(view[2]), text: $("rt").value }); await Promise.all([loadMe(), loadShop()]); toast("Thank you for your review!"); back(); } catch (e) { msg = e.message; render(); } }
+
+function wishlist() {
+  return gate(() => { const l = me.wishlist.map(find).filter(Boolean); return topBar("Wishlist", 1) + `<main class="wrap" style="padding-top:14px">${l.length ? `<div class="grid">${l.map(card).join("")}</div>` : '<p class="empty">Tap the heart on any chocolate to save it here.</p>'}</main>`; });
 }
+const NOTE = { placed: ["🛍️", "Order placed"], confirmed: ["✅", "Order confirmed"], packed: ["🎁", "Ready for dispatch"], out: ["🚚", "Out for delivery"], delivered: ["🎉", "Delivered"], cancelled: ["❌", "Order cancelled"] };
+async function openNotifs() { go("notifs"); if (me && me.unread) { me.unread = 0; try { await api("/c/read", "POST"); } catch (e) {} } }
+function notifs() {
+  return gate(() => topBar("Notifications", 1) + `<main class="wrap" style="padding-top:14px">${me.notifs.map(n => `<div class="card" style="cursor:pointer" onclick="go('track','${esc(n.number)}')"><b>${NOTE[n.k][0]} ${NOTE[n.k][1]}</b><br><span style="color:var(--mute)">Order #${esc(n.number)} · ${fmt(n.at)}</span></div>`).join("") || '<p class="empty">No notifications yet.</p>'}</main>`);
+}
+function support() {
+  const wa = shop.wa ? `https://wa.me/${shop.wa}?text=${encodeURIComponent("Hi " + shop.name + ", I need help with my order.")}` : "";
+  return topBar("Contact support", 1) + `<main class="wrap" style="padding-top:14px"><div class="card"><p style="margin-top:0">Questions about an order or a product? We are happy to help.</p>${wa ? `<a href="${esc(wa)}" target="_blank" rel="noopener"><button class="p big" style="background:#25D366">Chat on WhatsApp</button></a>` : ""}${shop.phone ? `<p><a href="tel:${esc(shop.phone)}"><button class="g big">📞 Call ${esc(shop.phone)}</button></a></p>` : ""}${!wa && !shop.phone ? "<p>The shop has not added contact details yet.</p>" : ""}</div></main>`;
+}
+
+// ---- drawing ----
+const WA = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3C9 3 3.4 8.6 3.4 15.5c0 2.4.7 4.7 1.9 6.600L3.200 29l7.200-1.900c1.800 1 3.800 1.500 5.600 1.500 7 0 12.600-5.600 12.600-12.500S23 3 16 3zm6.500 17.500c-.3.800-1.600 1.500-2.200 1.600-.6.100-1.300.1-2.100-.1-.5-.2-1.100-.4-1.900-.7-3.300-1.400-5.400-4.700-5.600-4.900-.2-.2-1.300-1.700-1.300-3.200s.8-2.300 1.100-2.600c.3-.3.600-.4.800-.4h.6c.2 0 .5-.1.700.5.300.600.900 2.100 1 2.300.1.200.1.400 0 .6-.1.200-.2.400-.4.600-.2.200-.4.500-.5.600-.2.200-.3.400-.1.700.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.400 2.400 1.500.3.200.5.100.7-.1.200-.2.800-.9 1-1.200.2-.3.400-.3.700-.2.300.1 1.700.8 2 1 .3.200.5.200.6.400.1.100.1.800-.2 1.600z"/></svg>';
+const SCREENS = { home, cats, search, product, cart: cartView, checkout, placed: placedView, login, account, profile, addresses, orders, track, review, wishlist, notifs, support };
+const TABS = [["home", "🏠", "Home"], ["cats", "🍫", "Categories"], ["cart", "🛒", "Cart"], ["account", "👤", "Account"]];
+function render() {
+  const app = $("app"); if (!app) return;
+  if (failed) { app.innerHTML = '<p class="empty">Store not found.</p>'; return; }
+  if (!loaded) { app.innerHTML = '<p class="empty">Loading…</p>'; return; }
+  const v = view[0], focus = document.activeElement && document.activeElement.id, pos = document.activeElement && document.activeElement.selectionStart;
+  const hideTab = ["product", "checkout", "placed"].includes(v) ? v !== "placed" : false, n = cartCount();
+  app.innerHTML = (SCREENS[v] || home)() + (hideTab ? "" : `<nav class="tab"><div class="wrap">${TABS.map(([k, i, l]) => `<button class="${v === k || (k === "account" && ["profile", "addresses", "orders", "track", "wishlist", "notifs", "support", "login", "review"].includes(v)) ? "on" : ""}" onclick="root('${k}')"><span>${i}</span>${l}</button>`).join("").replace("Cart</button>", `Cart</button>`).replace(/(<span>🛒<\/span>)/, `$1${n ? `<i>${n}</i>` : ""}`)}</div></nav>`) + (shop.wa && !["product", "checkout"].includes(v) ? `<a class="wa" href="https://wa.me/${shop.wa}" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">${WA}</a>` : "");
+  if (v === "search") { drawHits(); const i = $("qi"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+  else if (focus && $(focus) && $(focus).focus) { $(focus).focus(); try { $(focus).setSelectionRange(pos, pos); } catch (e) {} }
+}
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { if (view[0] === "login") otp.sent ? verifyOtp() : sendOtp(); } });
+loadShop(); loadMe();
 </script>
 </body>
 </html>
