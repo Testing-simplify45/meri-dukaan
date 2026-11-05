@@ -213,7 +213,6 @@ function home() {
 function cats() {
   const list = tag ? shop.products.filter(p => p.tags.includes(tag)) : shop.products;
   return hdr("Categories", { back: false, bell: 1 }) + `<div class="sb"><label class="in">${ic("search")}<input type="search" aria-label="Search" placeholder="Search in all products" onfocus="this.blur();go('search')"></label></div>
-    ${shop.tags.length ? `<div class="cat2">${shop.tags.map(t => `<button class="${tag === t ? "on" : ""}" data-t="${esc(t)}" onclick="tag=tag===this.dataset.t?'':this.dataset.t;render()"><div class="i">${ic("bar", 40, 1.6)}</div><b>${esc(t)}</b><small>${shop.products.filter(p => p.tags.includes(t)).length} items</small>${tag === t ? `<span class="ck">${ic("check", 14, 3.2)}</span>` : ""}</button>`).join("")}</div>` : ""}
     <div class="sh"><h2>${esc(tag || "All products")}</h2></div>
     <div class="chips"><button class="${tag ? "" : "on"}" onclick="tag='';render()">All</button>${shop.tags.map(t => `<button class="${tag === t ? "on" : ""}" data-t="${esc(t)}" onclick="tag=this.dataset.t;render()">${esc(t)}</button>`).join("")}</div>
     ${list.length ? `<div class="grid">${groups(list).map(p => card(p, "", 1)).join("")}</div>` : '<p class="empty">Nothing here yet.</p>'}`;
