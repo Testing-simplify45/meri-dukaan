@@ -384,6 +384,7 @@ function draw() {
 function openCreate() {
   if (!owner()) return openProd();
   modal(`<h2 style="font-size:1.2rem">Create new</h2><button class="cr" onclick="closeM();openProd()"><div class="tile" style="background:#eef0ff;color:#4f46e5">${ic("box")}</div><div class="grow"><b>New product</b><span class="mute">Add to inventory &amp; online store</span></div>${ic("chev")}</button>
+  <button class="cr" onclick="closeM();scanToAdd()"><div class="tile" style="background:#fff4e0;color:#d97706">${ic("camera")}</div><div class="grow"><b>Scan barcode</b><span class="mute">Add a product, or find one you already have</span></div>${ic("chev")}</button>
   <button class="cr" onclick="closeM();newInvoice()"><div class="tile" style="background:#e5f7ef;color:#0f9d6b">${ic("file")}</div><div class="grow"><b>New sale</b><span class="mute">Bill a customer, or record a purchase</span></div>${ic("chev")}</button>`);
 }
 function openMore() {
@@ -570,14 +571,70 @@ function saveAdjust(id) {
 }
 
 const setLive = (id, on) => act(() => api(base + "/products/" + id, "PUT", { active: on }));
-function openProd(id) {
-  const p = P.find(x => x.id == id) || { active: owner(), lowAt: 5, tags: [], photos: [] }, kids = !!id && P.some(x => x.mergeUnder == id), dis = perm => can(perm) ? "" : "disabled", np = (p.photos || []).length;
+// ---- Barcode / EAN scanner: uses the phone camera (works on Chrome, Edge and Safari); a USB or Bluetooth scanner just types into the box ----
+let SCAN = null;
+function stopScan() { const sc = SCAN; SCAN = null; if (!sc) return; try { sc.stream && sc.stream.getTracks().forEach(t => t.stop()); } catch (e) {} try { sc.reader && sc.reader.reset(); } catch (e) {} clearInterval(sc.t); }
+function scanNote(t) { const n = $("scs"); if (n) n.textContent = t; }
+function openScanner(onCode) {
+  stopScan();
+  modal(`<h2 style="font-size:1.2rem">Scan barcode</h2><div style="position:relative;border-radius:14px;overflow:hidden;background:#111;min-height:200px"><video id="scv" playsinline muted autoplay style="width:100%;display:block"></video><div style="position:absolute;left:12%;right:12%;top:38%;height:24%;border:2px solid #fff;border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,.35)"></div></div>
+  <p class="mute" id="scs" style="margin:8px 0">Starting the camera…</p>
+  <label>Or type / scan the number<input id="scm" inputmode="numeric" autocomplete="off" placeholder="e.g. 8901058852929" onkeydown="if(event.key==='Enter'){event.preventDefault();scanManual()}"></label>
+  <div class="acts"><button type="button" class="btn g grow" onclick="stopScan();closeM()">Cancel</button><button type="button" class="btn grow" onclick="scanManual()">Use number</button></div>`);
+  SCAN = { onCode, done: false }; const me = SCAN;
+  startCamera(me);
+}
+function scanManual() { const v = ($("scm") || {}).value || ""; const c = v.replace(/\s+/g, ""); if (!/^[0-9]{6,14}$/.test(c)) return scanNote("A barcode is 6 to 14 digits, numbers only."); gotCode(c); }
+function gotCode(c) { const sc = SCAN; if (!sc || sc.done) return; sc.done = true; const cb = sc.onCode; stopScan(); try { navigator.vibrate && navigator.vibrate(60); } catch (e) {} cb(c); }
+async function startCamera(me) {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("no camera");
+    const v = $("scv");
+    if ("BarcodeDetector" in window) {
+      const det = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
+      me.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      if (SCAN !== me) { stopScan(); return; }
+      v.srcObject = me.stream; await v.play(); scanNote("Point the camera at the barcode.");
+      me.t = setInterval(async () => { if (SCAN !== me || !$("scv")) return stopScan(); try { const r = await det.detect(v); if (r.length) gotCode(r[0].rawValue); } catch (e) {} }, 250);
+    } else { // Safari and others: a small free reader library
+      await new Promise((ok, no) => { if (window.ZXing) return ok(); const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"; sc.onload = ok; sc.onerror = () => no(new Error("reader")); document.head.appendChild(sc); });
+      if (SCAN !== me) return;
+      const hints = new Map([[ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E]]]);
+      me.reader = new ZXing.BrowserMultiFormatReader(hints); scanNote("Point the camera at the barcode.");
+      me.t = setInterval(() => { if (SCAN !== me || !$("scv")) stopScan(); }, 500);
+      me.reader.decodeFromConstraints({ video: { facingMode: { ideal: "environment" } }, audio: false }, "scv", r => { if (r) gotCode(r.getText()); }).catch(() => scanNote("The camera could not start. Type the number below instead."));
+    }
+  } catch (e) { scanNote("The camera is not available. Allow camera access, or type the number below."); }
+}
+// scan, then either open the product you already have, or start a new one with the details filled in
+function scanToAdd() { openScanner(code => barcodeFlow(code)); }
+async function barcodeFlow(code) {
+  try {
+    const r = await api(base + "/barcode/" + code);
+    if (r.mine) { alert(`You already have “${r.mine.name}” with this barcode.`); closeM(); return openProdSheet(r.mine.id); }
+    closeM(); openProd("", { barcode: code, ...(r.found || {}) });
+    if (!r.found) setTimeout(() => alert("Barcode saved. This one is not in the free product list, so please type the name and price."), 50);
+  } catch (e) { closeM(); alert(e.message); }
+}
+// inside the product form: scan into the barcode box, and fill the name if it is still empty
+function scanIntoForm() {
+  const f = document.querySelector("#dlg form"); const keep = f ? Object.fromEntries([...f.elements].filter(x => x.name && x.type !== "file" && x.type !== "checkbox").map(x => [x.name, x.value])) : {};
+  openScanner(async code => {
+    let r = {}; try { r = await api(base + "/barcode/" + code); } catch (e) {}
+    const id = (f && f.getAttribute("onsubmit").match(/'([^']*)'\)/) || [])[1] || "";
+    if (r.mine && r.mine.id != id) { alert(`“${r.mine.name}” already uses this barcode.`); return openProd(id, { ...keep, barcode: keep.barcode || "" }); }
+    openProd(id, { ...keep, barcode: code, name: keep.name || (r.found || {}).name || "", description: keep.description || (r.found || {}).description || "" });
+  });
+}
+function openProd(id, pre) {
+  const p = { ...(P.find(x => x.id == id) || { active: owner(), lowAt: 5, tags: [], photos: [] }), ...(pre || {}) }, kids = !!id && P.some(x => x.mergeUnder == id), dis = perm => can(perm) ? "" : "disabled", np = (p.photos || []).length;
   modal(`<form onsubmit="saveProd(event,'${id || ""}')"><h2>${id ? "Edit product" : "Add product"}</h2>
   <label>Photos (up to 5) · saved at 1536 × 1024, whole photo kept on white</label><div class="row" style="margin:6px 0 10px">${(p.photos || []).map(i => `<span class="ph2"><img class="th" src="/api/photo/${slug}/${i}" alt="">${can("add") ? `<button type="button" aria-label="Remove photo" onclick="delPhoto('${id}','${i}')">×</button>` : ""}</span>`).join("") || '<span class="mute">No photos yet</span>'}</div>
   ${can("add") && np < 5 ? '<input name="pf" type="file" accept="image/*" multiple>' : ""}
   <label>Name<input name="name" required ${dis("add")} value="${esc(p.name)}"></label>
   <label>Description<input name="description" ${dis("add")} value="${esc(p.description)}"></label>
   <label>Product code (SKU, optional)<input name="sku" ${dis("add")} value="${esc(p.sku)}" placeholder="Made for you if left empty"></label>
+  <label>Barcode / EAN (optional)</label><div class="row nw" style="gap:8px;margin:5px 0 12px"><input name="barcode" inputmode="numeric" autocomplete="off" ${dis("add")} value="${esc(p.barcode)}" placeholder="Scan or type the number" style="margin:0;flex:1;min-width:0">${can("add") ? `<button type="button" class="btn g" style="flex:none" onclick="scanIntoForm()" aria-label="Scan barcode">${ic("camera")} Scan</button>` : ""}</div>
   <div class="fg"><label>Purchase price (₹)<input name="cost" type="number" min="0" step="any" ${dis("cost")} value="${esc(p.cost)}"></label>
   <label>Selling price (₹)${owner() ? "" : " · set by owner"}<input name="price" type="number" min="0" step="any" ${owner() ? "required" : "disabled"} value="${esc(p.price || "")}"></label>
   ${owner() ? `<label>Crossed-out price / MRP (₹, optional)<input name="mrp" type="number" min="0" step="any" value="${esc(p.mrp || "")}" placeholder="Shows a discount if higher than the selling price"></label>` : ""}
@@ -800,7 +857,7 @@ function openPicker() {
 }
 function renderPick() {
   const q = ($("pks") ? $("pks").value : "").trim().toLowerCase(), box = $("pkl"); if (!box) return;
-  box.innerHTML = P.filter(p => !q || [p.name, p.sku, p.o1, p.o2].join(" ").toLowerCase().includes(q)).map(p => { const st = stockInfo(p), ok = p.price > 0 && (p.qty == null || p.qty > 0); return `<button class="pr" ${ok ? "" : "disabled style=\"opacity:.55\""} onclick="pickProd('${p.id}')">${picOf(p)}<div class="grow"><div class="nm">${esc(p.name)}</div><div class="mute">${esc(p.sku || "")}</div></div><div class="rt"><b>${p.price > 0 ? inr(p.price) : "No price"}</b><span class="bd ${st.cls}">${st.txt}</span></div></button>`; }).join("") || '<p class="mute">No products match.</p>';
+  box.innerHTML = P.filter(p => !q || [p.name, p.sku, p.barcode, p.o1, p.o2].join(" ").toLowerCase().includes(q)).map(p => { const st = stockInfo(p), ok = p.price > 0 && (p.qty == null || p.qty > 0); return `<button class="pr" ${ok ? "" : "disabled style=\"opacity:.55\""} onclick="pickProd('${p.id}')">${picOf(p)}<div class="grow"><div class="nm">${esc(p.name)}</div><div class="mute">${esc(p.sku || "")}</div></div><div class="rt"><b>${p.price > 0 ? inr(p.price) : "No price"}</b><span class="bd ${st.cls}">${st.txt}</span></div></button>`; }).join("") || '<p class="mute">No products match.</p>';
 }
 function pickProd(id) { const pp = P.find(x => x.id == id); if (pp && daysTo(pp) != null && daysTo(pp) < 0 && !confirm(`${pp.name} expired on ${fmtDate(pp.expiry)}. Add it to the invoice anyway?`)) return; const l = INV.lines.find(x => x.id == id); if (l) invQty(INV.lines.indexOf(l), 1); else INV.lines.push({ id, qty: 1 }); closeM(); draw(); }
 async function saveDraft() {
@@ -1102,7 +1159,7 @@ function openPuPicker() {
 }
 function renderPuPick() {
   const raw = ($("pks") ? $("pks").value : "").trim(), q = raw.toLowerCase(), box = $("pkl"); if (!box) return;
-  const hit = P.filter(p => !q || [p.name, p.sku, p.o1, p.o2].join(" ").toLowerCase().includes(q)).slice(0, 40), exact = P.some(p => p.name.toLowerCase() == q);
+  const hit = P.filter(p => !q || [p.name, p.sku, p.barcode, p.o1, p.o2].join(" ").toLowerCase().includes(q)).slice(0, 40), exact = P.some(p => p.name.toLowerCase() == q);
   box.innerHTML = (raw && !exact ? `<button class="pr" style="border-style:dashed" onclick="puPickNew(this.dataset.n)" data-n="${esc(raw)}"><div class="tile" style="background:var(--soft);color:var(--ac)">${ic("plus")}</div><div class="grow"><div class="nm">Add “${esc(raw)}” as a new product</div><div class="mute">Saved as a draft. Add price and photo later.</div></div></button>` : "") +
     hit.map(p => `<button class="pr" onclick="puPick('${p.id}')">${picOf(p)}<div class="grow"><div class="nm">${esc(p.name)}</div><div class="mute">${esc(p.sku || "")}${can("cost") && p.cost != null ? " · cost " + inr(p.cost) : ""}</div></div><div class="rt"><b>${p.qty == null ? "—" : p.qty}</b><span class="mute">in stock</span></div></button>`).join("");
   if (!box.innerHTML) box.innerHTML = '<p class="mute">Type a name to add it.</p>';

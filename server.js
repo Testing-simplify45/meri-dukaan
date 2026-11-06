@@ -497,6 +497,7 @@ async function fields(req, b) {
     if (b.description !== undefined) u.description = clean(b.description, 300);
     if (b.supplier !== undefined) u.supplier = clean(b.supplier, 80);
     if (b.sku !== undefined) u.sku = clean(b.sku, 24).toUpperCase();
+    if (b.barcode !== undefined) { const c = String(b.barcode || "").replace(/\s+/g, ""); if (c && !/^[0-9]{6,14}$/.test(c)) throw new Bad("A barcode (EAN) is 6 to 14 digits, numbers only."); u.barcode = c; }
     if (b.mergeUnder !== undefined) u.mergeUnder = clean(b.mergeUnder, 40); // checked in checkMerge()
     if (b.kind !== undefined) u.kind = b.kind === "food" ? "food" : "general"; // colour+size, or flavour+weight
     if (b.o1 !== undefined) u.o1 = clean(b.o1, 40); // colour or flavour
@@ -538,9 +539,34 @@ app.get(m + "/products", auth, h(async (req, res) => {
   const s = await sub(req, "products").orderBy("createdAt", "desc").get();
   res.json(s.docs.map(d => { const x = { id: d.id, ...d.data(), createdAt: undefined }; if (!can(req, "cost")) delete x.cost; return x; }));
 }));
+// ----- Barcode / EAN: find a product you already have, or fill in a new one from the free Open Food Facts list -----
+const bnorm = c => String(c || "").replace(/\D/g, "").replace(/^0+/, "");
+async function checkBarcode(req, code, selfId) {
+  if (!code) return;
+  const all = await sub(req, "products").get(), dup = all.docs.find(d => d.id !== selfId && bnorm(d.data().barcode) === bnorm(code));
+  if (dup) throw new Bad(`This barcode is already used by “${dup.data().name}”.`);
+}
+async function offLookup(code) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 4000);
+  try {
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,quantity,generic_name`, { signal: ctl.signal, headers: { "User-Agent": "MeriDukaan/1.0 (small shop inventory)" } });
+    if (!r.ok) return null; const j = await r.json(); if (j.status !== 1 || !j.product) return null;
+    const x = j.product, brand = String(x.brands || "").split(",")[0].trim(), name = String(x.product_name || x.generic_name || "").trim();
+    if (!name) return null;
+    return { name: clean(brand && !name.toLowerCase().includes(brand.toLowerCase()) ? brand + " " + name : name, 100), description: clean([x.quantity].filter(Boolean).join(" · "), 300) };
+  } catch (e) { return null; } finally { clearTimeout(t); }
+}
+app.get(m + "/barcode/:code", auth, need("add", "stock"), h(async (req, res) => {
+  const code = String(req.params.code || "").replace(/\s+/g, "");
+  if (!/^[0-9]{6,14}$/.test(code)) throw new Bad("That does not look like a barcode (6 to 14 digits).");
+  const all = await sub(req, "products").get(), mine = all.docs.find(d => bnorm(d.data().barcode) === bnorm(code));
+  if (mine) return res.json({ code, mine: { id: mine.id, name: mine.data().name } });
+  res.json({ code, found: can(req, "add") ? await offLookup(code) : null });
+}));
 app.post(m + "/products", auth, need("add"), h(async (req, res) => {
   const u = await fields(req, req.body);
   if (!u.name) throw new Bad("Enter a product name.");
+  await checkBarcode(req, u.barcode, null);
   await checkMerge(req, null, u.mergeUnder);
   if (!u.sku) { // no code typed: make the next one, SKU-0001, SKU-0002 ...
     const n = await db.runTransaction(async t => { const st = await t.get(store(req.params.slug)), k = (st.data().skuSeq || 0) + 1; t.update(st.ref, { skuSeq: k }); return k; });
@@ -556,6 +582,7 @@ app.put(m + "/products/:id", auth, need("add", "stock", "cost", "tags"), h(async
   const ref = sub(req, "products").doc(req.params.id), ex = await ref.get();
   if (!ex.exists) throw new Bad("Product not found.");
   const u = await fields(req, req.body);
+  await checkBarcode(req, u.barcode, req.params.id);
   await checkMerge(req, req.params.id, u.mergeUnder);
   checkLive({ ...ex.data(), ...u }, ex.data());
   // Stock is changed against the latest number, never overwritten with an old copy:

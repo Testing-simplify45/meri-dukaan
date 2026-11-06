@@ -59,6 +59,13 @@ The shop sends email for three things: the **login code** customers type to sign
 - In a product, **Crossed-out price / MRP** shows a discount on the shop and **Featured** puts it on the home page.
 - Customers can review a delivered order; reviews show on the home page.
 
+## Adding products by barcode (EAN)
+- Tap **Create new → Scan barcode** (or the **Scan** button next to "Barcode / EAN" inside a product form) and point the phone camera at the barcode.
+- If you already have a product with that barcode, it opens. If not, a new product form opens with the barcode filled in. For packaged food and chocolates the name and pack size are filled in too, from the free Open Food Facts list. Always check the name, then type the price and quantity and add a photo.
+- No camera? Type the number, or use a USB or Bluetooth barcode scanner: click the box and scan.
+- The same barcode can't be used on two products. When you bill a customer, you can type or scan the barcode into the search box to find the product.
+- The camera needs the website link to start with https (Vercel does this for you) and permission to use the camera.
+
 ## Staff, tags and photos
 - **Logging in:** the manage page remembers you on that phone or computer until you tap **Log out**. Owners type their password or store key and leave **Username** empty. Staff type their username and password.
 - **Staff:** on the manage page open **Staff → Add a staff member**. Pick a username, a password and what they may do (add products, edit quantity and expiry, edit purchase price, assign tags, view orders). Staff log in on the same manage page by typing their username. They can never change selling prices, make products live, delete things or see sales and profit.
